@@ -10,7 +10,6 @@ user = config['user_02']
 user_pw = config['user_password_02']
 user_airline = config['user_airline_02']
 user_empno = config['user_empno_02']
-print(user, user_pw)
 
 # Using Chrome to access web
 driver = webdriver.Firefox()# Open the website
@@ -51,12 +50,6 @@ next_button = driver.find_element(By.CLASS_NAME,"uk-button-primary")
 driver.execute_script("window.scrollBy(0, 1000);")
 next_button.click()
 
-"""flights = driver.find_element(By.CLASS_NAME,"flights-list")
-table_html = flights.get_attribute("outerHTML")
-df_list = pd.read_html(table_html)
-df = df_list[0]
-print(df)"""
-
 html = driver.page_source
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -64,21 +57,86 @@ import pandas as pd
 # Parse the HTML code with BeautifulSoup
 soup = BeautifulSoup(html, 'html.parser')
 
-# Find all the flight list items
-flight_list_items = soup.select('.flights-list')
-print(flight_list_items)
+flight_list = soup.find_all("ul", class_="flights-list")
+html_string = ''.join(str(item) for item in flight_list)
 
-# Loop through each flight and extract the data
-data = []
-for item in flight_list_items:
-    flight_no = item.select_one('.flight_no').text
-    aircraft_name = item.select_one('.aircraftInfo > .name').text
-    seats = item.select_one('.seats').text
-    factsheet_url = item.select_one('.aircraftInfo > .factsheet')['href']
-    data.append([flight_no, aircraft_name, seats, factsheet_url])
+# Parse the HTML
+soup = BeautifulSoup(html_string, 'html.parser')
 
-# Create a pandas dataframe from the extracted data
-df = pd.DataFrame(data, columns=['Flight No', 'Aircraft Name', 'Seats', 'Factsheet URL'])
+# Find all the flight items
+flight_items = soup.find_all('li')
 
-# Print the dataframe
+# Create lists to store the extracted values
+# Create an empty dictionary to store the data
+data = {
+    'Aircraft Type': [],
+    'Seats': [],
+    'Departure Code': [],
+    'Departure Airport': [],
+    'Departure Time': [],
+    'Duration': [],
+    'Distance': [],
+    'Arrival Code': [],
+    'Arrival Airport': [],
+    'Arrival Time': [],
+    'Base Price': []
+}
+
+# Extract data from each flight item
+for flight_item in flight_items:
+
+    departure_div = flight_item.find('div', {'class': 'departure'})
+    arrival_div = flight_item.find('div', {'class': 'arrival'})
+
+    # Add airline
+    data['Airline'] = "Air Hamburg (02)"
+
+    # Extract aircraft type
+    aircraft_type = flight_item.find_all('span')[0].text.strip().split(":")[1]
+    data['Aircraft Type'].append(aircraft_type if aircraft_type else '')
+
+    # Extract seats
+    seats = flight_item.find_all('span')[1].text.strip().split(" ")[1]
+    data['Seats'].append(seats if seats else '')
+
+    # Extract departure code
+    departure_code = departure_div.find('h4').text.strip()
+    data['Departure Code'].append(departure_code if departure_code else '')
+
+    # Extract departure airport
+    departure_airport = departure_div.find_all('span')[0].text.strip()
+    data['Departure Airport'].append(departure_airport if departure_airport else '')
+
+    # Extract departure time
+    departure_time = departure_div.find_all('span')[1].text.strip()
+    data['Departure Time'].append(departure_time if departure_time else '')
+
+    # Extract duration
+    duration = flight_item.find('span', {'class': 'durationinfo'}).text.strip().split("/")[0]
+    data['Duration'].append(duration if duration else '')
+
+    # Extract distance
+    distance = flight_item.find('span', {'class': 'durationinfo'}).text.strip().split("/")[1]
+    data['Distance'].append(distance if distance else '')
+
+    # Extract arrival code
+    arrival_code = arrival_div.find('h4').text.strip()
+    data['Arrival Code'].append(arrival_code if arrival_code else '')
+
+    # Extract arrival airport
+    arrival_airport = arrival_div.find_all('span')[0].text.strip()
+    data['Arrival Airport'].append(arrival_airport if arrival_airport else '')
+
+    # Extract arrival time
+    arrival_time = arrival_div.find_all('span')[1].text.strip()
+    data['Arrival Time'].append(arrival_time if arrival_time else '')
+
+    # Extract base price
+    base_price = flight_item.find_all('span')[11].text.strip().split(":")[1].strip()
+    data['Base Price'].append(base_price if base_price else '')
+
+# Create a DataFrame from the extracted data
+df = pd.DataFrame(data)
+
+# Print the DataFrame
 print(df)
