@@ -74,16 +74,17 @@ class AirHamburgScraper:
 
         data = {
             'Airline': [],
-            'Aircraft Type': [],
-            'Seats': [],
+            "Departure Date": [],
             'Departure Code': [],
             'Departure Airport': [],
             'Departure Time': [],
-            'Duration': [],
-            'Distance': [],
             'Arrival Code': [],
             'Arrival Airport': [],
             'Arrival Time': [],
+            'Duration': [],
+            'Distance': [],
+            'Aircraft Type': [],
+            'Seats': [],
             'Base Price': []
         }
 
@@ -98,6 +99,8 @@ class AirHamburgScraper:
             data['Departure Code'].append(departure_code if departure_code else '')
             departure_airport = departure_div.find_all('span')[0].text.strip()
             data['Departure Airport'].append(departure_airport if departure_airport else '')
+            departure_date = flight_item.find('span', {'class': 'distanceinfo'}).text.strip()
+            data['Departure Date'].append(departure_date if departure_date else '')
             departure_time = departure_div.find_all('span')[1].text.strip()
             data['Departure Time'].append(departure_time if departure_time else '')
 
