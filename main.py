@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
-    email_receiver = 'paul.friedrich@gmx.net'
+    email_receiver = ''
     subject = 'testsubject'
     
 
