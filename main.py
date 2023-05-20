@@ -12,7 +12,7 @@ from email.mime.multipart import MIMEMultipart
 user = config['user_02']
 user_pw = config['user_password_02']
 user_airline = config['user_airline_02']
-user_empno = config['user_empno_02']
+user_empno = config['user_empno']
 
 
 if __name__ == "__main__":
