@@ -9,19 +9,31 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 
-user = config['user_02']
-user_pw = config['user_password_02']
-user_airline = config['user_airline_02']
+# Air Hamburg AHO
+user_AHO = config['user_AHO']
+user_pw_AHO = config['user_password_AHO']
+user_airline_AHO = config['user_airline_AHO']
+user_empno = config['user_empno']
+
+# PadAviation PVD
+user_PVD = config['user_PVD']
+user_pw_PVD = config['user_password_PVD']
+user_airline_PVD = config['user_airline_PVD']
 user_empno = config['user_empno']
 
 
 if __name__ == "__main__":
 
-    with scraper.AirHamburgScraper(user, user_pw, user_airline, user_empno) as AirHamburg:
+    with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
         AirHamburg.login()
         html = AirHamburg.get_table_html()
         df = AirHamburg.html_to_df(html)
     print(df)
+
+    with scraper.PadaviationScraper(user_PVD, user_pw_PVD, user_airline_PVD, user_empno) as PadAviation:
+        PadAviation.login()
+
+    raise 
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
