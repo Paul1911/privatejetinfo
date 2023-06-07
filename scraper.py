@@ -139,7 +139,6 @@ class AirHamburgScraper(AirlineScraper):
         df = pd.DataFrame(data)
         logging.info("Air Hamburg finished")
         return df
-
 class PadaviationScraper(AirlineScraper):
     def login(self):
         self.driver.get("https://traveller.padaviation.com/")
@@ -199,54 +198,49 @@ class ExcellentAirScraper(AirlineScraper):
     def login(self):
         self.driver.get("https://excellentair.de/en/ferry-flights-for-crews/")
         # Login
-        username_box = self.driver.find_element(By.CLASS_NAME, "css-1kp110w")
-        username_box.send_keys(self.user)
-        password_box = self.driver.find_element(By.ID, "field-:r1:")
+        password_box = self.driver.find_element(By.ID, "pwbox-625")
         password_box.send_keys(self.user_pw)
-        login_button = self.driver.find_element(By.CLASS_NAME, "css-12susmb")
+        login_button = self.driver.find_element(By.NAME, "Submit")
         login_button.click()
-
-        # Accept Conditions
-        time.sleep(2)
-        accept_conditions_checkbox = self.driver.find_element(By.CLASS_NAME, "css-1q9fgjv")
-        accept_conditions_checkbox.click()
-        accept_button = self.driver.find_element(By.CLASS_NAME, "css-1749gbk")
-        accept_button.click()
-
-        # Select Airline and enter Emp No 
-        airline_box = self.driver.find_element(By.ID, "airline")
-        select = Select(airline_box)
-        select.select_by_visible_text("Swiss")
-        emp_id_box = self.driver.find_element(By.ID, "field-:r4:")
-        emp_id_box.send_keys("77889")
-        continue_button = self.driver.find_element(By.CLASS_NAME, "css-14wvpnd")
-        continue_button.click()
-        time.sleep(2)
-
+        time.sleep(8)
 
     def html_to_df(self):
 
         html = self.driver.page_source 
         
         # get Dates 
+        #soup = BeautifulSoup(html, 'html.parser')
+        #dates = [header.get_text() for header in soup.find_all('h1')]
+
         soup = BeautifulSoup(html, 'html.parser')
-        dates = [header.get_text() for header in soup.find_all('h1')]
 
-        # Add Dates to Tables 
-        tables = pd.read_html(html)
-        for index, table in enumerate(tables):
-            table["Departure Date"] = dates[index]
+        # Find all elements with the "flight" class
+        flight_elements = soup.find_all('div', class_='flight')
+        print("flight elements:", flight_elements)
 
-        # Format Table
-        concatenated_tables = pd.concat(tables, axis=0)
-        concatenated_tables["Departure Date"] = concatenated_tables["Departure Date"].astype('datetime64[ns]')
-        concatenated_tables["From"] = concatenated_tables["From"].str[:-4]
-        concatenated_tables["To"] = concatenated_tables["To"].str[:-4]
-        concatenated_tables["Departure Time"] = pd.to_datetime(concatenated_tables["Time"].str[0:5],  format='%H:%M').dt.strftime('%H:%M')
-        concatenated_tables["Arrival Time"] = pd.to_datetime(concatenated_tables["Time"].str[5:],  format='%H:%M').dt.strftime('%H:%M')
-        concatenated_tables["Aircraft"] = concatenated_tables["Aircraft"].str[:-11]
-        concatenated_tables["Price"] = concatenated_tables["Price"].str[:-15].astype('float64')
-        concatenated_tables["Airline"] = "PAD Aviation (PVD)"
-        concatenated_tables = concatenated_tables.drop(["Time", "Unnamed: 5"], axis=1).reset_index(drop=True)
+        # Create a list to store the extracted data
+        data = []
 
-        return concatenated_tables
+        # Iterate over the flight elements and extract the desired information
+        for flight in flight_elements:
+            flight_number = flight.find(class_="no").text.strip()
+            start_time = flight.find(class_="start").text.strip().split('\n')[-1]
+            end_time = flight.find(class_="end").text.strip()
+            start_airport = flight.find(class_="airport").find(class_="start").abbr.text.strip()
+            end_airport = flight.find(class_="airport").find(class_="end").abbr.text.strip()
+            
+            # Append the extracted data as a dictionary to the 'data' list
+            data.append({
+                'Flight Number': flight_number,
+                'Start Time': start_time,
+                'End Time': end_time,
+                'Start Airport': start_airport,
+                'End Airport': end_airport
+            })
+
+        # Create a Pandas DataFrame from the extracted data
+        df = pd.DataFrame(data)
+
+        # Print the DataFrame
+        print(df)
+        raise
