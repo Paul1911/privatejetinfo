@@ -8,19 +8,20 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-class AirHamburgScraper:
+class AirlineScraper:
     def __init__(self, user, user_pw, user_airline, user_empno):
         self.user = user
         self.user_pw = user_pw
         self.user_airline = user_airline
         self.user_empno = user_empno
-        self.driver = webdriver.Firefox()
 
     def __enter__(self):
+        self.driver = webdriver.Firefox()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.driver.quit()
+class AirHamburgScraper(AirlineScraper):
 
     def login(self):
         self.driver.get("https://www.air-hamburg.de/de/login")
@@ -139,20 +140,7 @@ class AirHamburgScraper:
         logging.info("Air Hamburg finished")
         return df
 
-class PadaviationScraper:
-    def __init__(self, user, user_pw, user_airline, user_empno):
-        self.user = user
-        self.user_pw = user_pw
-        self.user_airline = user_airline
-        self.user_empno = user_empno
-        self.driver = webdriver.Firefox()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.quit()
-
+class PadaviationScraper(AirlineScraper):
     def login(self):
         self.driver.get("https://traveller.padaviation.com/")
         # Login
@@ -182,50 +170,64 @@ class PadaviationScraper:
 
 
     def html_to_df(self):
-        html = self.driver.page_source
-        
-        '''# Parse HTML using BeautifulSoup
+
+        html = self.driver.page_source 
+
+        # get Dates 
         soup = BeautifulSoup(html, 'html.parser')
+        dates = [header.get_text() for header in soup.find_all('h1')]
 
-        # Find all table rows (excluding the header row)
-        rows = soup.find_all('tr')[1:]
-        print(rows)
+        # Add Dates to Tables 
+        tables = pd.read_html(html)
+        for index, table in enumerate(tables):
+            table["Departure Date"] = dates[index]
 
-        # Initialize an empty list to store table data
-        table_data = []
+        # Format Table
+        concatenated_tables = pd.concat(tables, axis=0)
+        concatenated_tables["Departure Date"] = concatenated_tables["Departure Date"].astype('datetime64[ns]')
+        concatenated_tables["From"] = concatenated_tables["From"].str[:-4]
+        concatenated_tables["To"] = concatenated_tables["To"].str[:-4]
+        concatenated_tables["Departure Time"] = pd.to_datetime(concatenated_tables["Time"].str[0:5],  format='%H:%M').dt.strftime('%H:%M')
+        concatenated_tables["Arrival Time"] = pd.to_datetime(concatenated_tables["Time"].str[5:],  format='%H:%M').dt.strftime('%H:%M')
+        concatenated_tables["Aircraft"] = concatenated_tables["Aircraft"].str[:-11]
+        concatenated_tables["Price"] = concatenated_tables["Price"].str[:-15].astype('float64')
+        concatenated_tables["Airline"] = "PAD Aviation (PVD)"
+        concatenated_tables = concatenated_tables.drop(["Time", "Unnamed: 5"], axis=1).reset_index(drop=True)
 
-        # Iterate over each row
-        for row in rows:
-            # Find all table cells in the row
-            cells = row.find_all('td')
-            # Extract text from each cell and append to the row_data list
-            row_data = [cell.get_text(strip=True) for cell in cells]
-            # Append the row_data to the table_data list
-            table_data.append(row_data)
+        return concatenated_tables
+class ExcellentAirScraper(AirlineScraper):
+    def login(self):
+        self.driver.get("https://excellentair.de/en/ferry-flights-for-crews/")
+        # Login
+        username_box = self.driver.find_element(By.CLASS_NAME, "css-1kp110w")
+        username_box.send_keys(self.user)
+        password_box = self.driver.find_element(By.ID, "field-:r1:")
+        password_box.send_keys(self.user_pw)
+        login_button = self.driver.find_element(By.CLASS_NAME, "css-12susmb")
+        login_button.click()
 
-        # Create a Pandas DataFrame from the table_data list
-        df = pd.DataFrame(table_data, columns=['Time', 'From', 'To', 'Aircraft', 'Price', ''])
+        # Accept Conditions
+        time.sleep(2)
+        accept_conditions_checkbox = self.driver.find_element(By.CLASS_NAME, "css-1q9fgjv")
+        accept_conditions_checkbox.click()
+        accept_button = self.driver.find_element(By.CLASS_NAME, "css-1749gbk")
+        accept_button.click()
 
-        # Find all table elements
-        tables = soup.find_all('table')
+        # Select Airline and enter Emp No 
+        airline_box = self.driver.find_element(By.ID, "airline")
+        select = Select(airline_box)
+        select.select_by_visible_text("Swiss")
+        emp_id_box = self.driver.find_element(By.ID, "field-:r4:")
+        emp_id_box.send_keys("77889")
+        continue_button = self.driver.find_element(By.CLASS_NAME, "css-14wvpnd")
+        continue_button.click()
+        time.sleep(2)
 
-        # Iterate over each table and extract the data
-        dataframes = []
-        for table in tables:
-            # Extract the table headers
-            headers = [th.text for th in table.select('thead th')]
-            
-            # Extract the table rows
-            rows = []
-            for tr in table.select('tbody tr'):
-                row = [td.text for td in tr.select('td')]
-                rows.append(row)
-            
-            # Create a DataFrame from the headers and rows
-            df = pd.DataFrame(rows, columns=headers)
-            dataframes.append(df)'''
 
-        # Pandas approach 
+    def html_to_df(self):
+
+        html = self.driver.page_source 
+        
         # get Dates 
         soup = BeautifulSoup(html, 'html.parser')
         dates = [header.get_text() for header in soup.find_all('h1')]
