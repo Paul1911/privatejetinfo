@@ -24,16 +24,16 @@ user_empno = config['user_empno']
 
 if __name__ == "__main__":
 
-    with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
-        AirHamburg.login()
-        html = AirHamburg.get_table_html()
-        df = AirHamburg.html_to_df(html)
-    print(df)
+    #with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
+    #    AirHamburg.login()
+    #    html = AirHamburg.get_table_html()
+    #    df = AirHamburg.html_to_df(html)
+    #print(df)
 
     with scraper.PadaviationScraper(user_PVD, user_pw_PVD, user_airline_PVD, user_empno) as PadAviation:
         PadAviation.login()
-
-    raise 
+        df = PadAviation.html_to_df()
+        print(df)
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
@@ -63,3 +63,4 @@ if __name__ == "__main__":
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
         smtp.sendmail(email_sender, email_receiver, em.as_string())
+        logging.info("Mail sent")

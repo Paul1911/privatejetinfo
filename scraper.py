@@ -96,7 +96,7 @@ class AirHamburgScraper:
         for flight_item in flight_items:
 
             # Add airline
-            data['Airline'] = "Air Hamburg (02)"
+            data['Airline'] = "Air Hamburg (AHO)"
 
             # Extract departure information
             departure_div = flight_item.find('div', {'class': 'departure'})
@@ -164,7 +164,7 @@ class PadaviationScraper:
         login_button.click()
 
         # Accept Conditions
-        time.sleep(1)
+        time.sleep(2)
         accept_conditions_checkbox = self.driver.find_element(By.CLASS_NAME, "css-1q9fgjv")
         accept_conditions_checkbox.click()
         accept_button = self.driver.find_element(By.CLASS_NAME, "css-1749gbk")
@@ -178,101 +178,73 @@ class PadaviationScraper:
         emp_id_box.send_keys("77889")
         continue_button = self.driver.find_element(By.CLASS_NAME, "css-14wvpnd")
         continue_button.click()
+        time.sleep(2)
 
-        ####################
 
-
-    def get_table_html(self):
-        self.driver.get("https://www.air-hamburg.de/de/idtravel")
-        accept_continue_button = self.driver.find_element(By.CLASS_NAME, "uk-button-primary")
-        accept_continue_button.click()
-
-        airline_box_locator = (By.ID, "employee.fieldset[0].fields.em_airline")
-        airline_box = WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located(airline_box_locator))
-        #airline_box = self.driver.find_element(By.ID, "employee.fieldset[0].fields.em_airline")
-        select = Select(airline_box)
-        select.select_by_value(self.user_airline)
-
-        emp_id_box = self.driver.find_element(By.CLASS_NAME, "field-text")
-        emp_id_box.send_keys(self.user_empno)
-
-        emp_ret_button = self.driver.find_element(By.CSS_SELECTOR, 'button[data-bind*="_onClick"]')
-        emp_ret_button.click()
-
-        next_button = self.driver.find_element(By.CLASS_NAME, "uk-button-primary")
-        self.driver.execute_script("window.scrollBy(0, 1000);")
-        next_button.click()
-
-        # Parse the HTML code with BeautifulSoup
+    def html_to_df(self):
         html = self.driver.page_source
-        return html
-
-    def html_to_df(self, html):
+        
+        '''# Parse HTML using BeautifulSoup
         soup = BeautifulSoup(html, 'html.parser')
-        flight_list = soup.find_all("ul", class_="flights-list")
-        flight_items = []
-        for flight in flight_list:
-            flight_items.extend(flight.find_all('li'))
 
-        data = {
-            'Airline': [],
-            "Departure Date": [],
-            'Departure Code': [],
-            'Departure Airport': [],
-            'Departure Time': [],
-            'Arrival Code': [],
-            'Arrival Airport': [],
-            'Arrival Time': [],
-            'Duration': [],
-            'Distance': [],
-            'Aircraft Type': [],
-            'Seats': [],
-            'Base Price': []
-        }
+        # Find all table rows (excluding the header row)
+        rows = soup.find_all('tr')[1:]
+        print(rows)
 
-        for flight_item in flight_items:
+        # Initialize an empty list to store table data
+        table_data = []
 
-            # Add airline
-            data['Airline'] = "Air Hamburg (02)"
+        # Iterate over each row
+        for row in rows:
+            # Find all table cells in the row
+            cells = row.find_all('td')
+            # Extract text from each cell and append to the row_data list
+            row_data = [cell.get_text(strip=True) for cell in cells]
+            # Append the row_data to the table_data list
+            table_data.append(row_data)
 
-            # Extract departure information
-            departure_div = flight_item.find('div', {'class': 'departure'})
-            departure_code = departure_div.find('h4').text.strip()
-            data['Departure Code'].append(departure_code if departure_code else '')
-            departure_airport = departure_div.find_all('span')[0].text.strip()
-            data['Departure Airport'].append(departure_airport if departure_airport else '')
-            departure_date = flight_item.find('span', {'class': 'distanceinfo'}).text.strip()
-            data['Departure Date'].append(departure_date if departure_date else '')
-            departure_time = departure_div.find_all('span')[1].text.strip()
-            data['Departure Time'].append(departure_time if departure_time else '')
+        # Create a Pandas DataFrame from the table_data list
+        df = pd.DataFrame(table_data, columns=['Time', 'From', 'To', 'Aircraft', 'Price', ''])
 
-            # Extract flight info
-            aircraft_type = flight_item.find_all('span')[0].text.strip().split(":")[1]
-            data['Aircraft Type'].append(aircraft_type if aircraft_type else '')
-            seats = flight_item.find_all('span')[1].text.strip().split(" ")[1]
-            data['Seats'].append(seats if seats else '')
-            duration = flight_item.find('span', {'class': 'durationinfo'}).text.strip().split("/")[0]
-            data['Duration'].append(duration if duration else '')
-            distance = flight_item.find('span', {'class': 'durationinfo'}).text.strip().split("/")[1]
-            data['Distance'].append(distance if distance else '')
+        # Find all table elements
+        tables = soup.find_all('table')
 
-            # Extract arrival information
-            arrival_div = flight_item.find('div', {'class': 'arrival'})
-            arrival_code = arrival_div.find('h4').text.strip()
-            data['Arrival Code'].append(arrival_code if arrival_code else '')
-            arrival_airport = arrival_div.find_all('span')[0].text.strip()
-            data['Arrival Airport'].append(arrival_airport if arrival_airport else '')
-            arrival_time = arrival_div.find_all('span')[1].text.strip()
-            data['Arrival Time'].append(arrival_time if arrival_time else '')
+        # Iterate over each table and extract the data
+        dataframes = []
+        for table in tables:
+            # Extract the table headers
+            headers = [th.text for th in table.select('thead th')]
+            
+            # Extract the table rows
+            rows = []
+            for tr in table.select('tbody tr'):
+                row = [td.text for td in tr.select('td')]
+                rows.append(row)
+            
+            # Create a DataFrame from the headers and rows
+            df = pd.DataFrame(rows, columns=headers)
+            dataframes.append(df)'''
 
-            # Extract base price
-            base_price = flight_item.find_all('span')[11].text.strip().split(":")[1].strip()
-            data['Base Price'].append(base_price if base_price else '')
+        # Pandas approach 
+        # get Dates 
+        soup = BeautifulSoup(html, 'html.parser')
+        dates = [header.get_text() for header in soup.find_all('h1')]
 
-        logging.info("html parsing finished")
+        # Add Dates to Tables 
+        tables = pd.read_html(html)
+        for index, table in enumerate(tables):
+            table["Departure Date"] = dates[index]
 
-        # Create a DataFrame from the extracted data
-        df = pd.DataFrame(data)
-        logging.info("Air Hamburg finished")
-        return df
+        # Format Table
+        concatenated_tables = pd.concat(tables, axis=0)
+        concatenated_tables["Departure Date"] = concatenated_tables["Departure Date"].astype('datetime64[ns]')
+        concatenated_tables["From"] = concatenated_tables["From"].str[:-4]
+        concatenated_tables["To"] = concatenated_tables["To"].str[:-4]
+        concatenated_tables["Departure Time"] = pd.to_datetime(concatenated_tables["Time"].str[0:5],  format='%H:%M').dt.strftime('%H:%M')
+        concatenated_tables["Arrival Time"] = pd.to_datetime(concatenated_tables["Time"].str[5:],  format='%H:%M').dt.strftime('%H:%M')
+        concatenated_tables["Aircraft"] = concatenated_tables["Aircraft"].str[:-11]
+        concatenated_tables["Price"] = concatenated_tables["Price"].str[:-15].astype('float64')
+        concatenated_tables["Airline"] = "PAD Aviation (PVD)"
+        concatenated_tables = concatenated_tables.drop(["Time", "Unnamed: 5"], axis=1).reset_index(drop=True)
+
+        return concatenated_tables
