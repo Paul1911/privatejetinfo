@@ -137,6 +137,7 @@ class AirHamburgScraper(AirlineScraper):
 
         # Create a DataFrame from the extracted data
         df = pd.DataFrame(data)
+        print("Air Hamburg:\n", df)
         logging.info("Air Hamburg finished")
         return df
 class PadaviationScraper(AirlineScraper):
@@ -193,6 +194,9 @@ class PadaviationScraper(AirlineScraper):
         concatenated_tables["Airline"] = "PAD Aviation (PVD)"
         concatenated_tables = concatenated_tables.drop(["Time", "Unnamed: 5"], axis=1).reset_index(drop=True)
 
+        print("PADAviation:\n", concatenated_tables)
+        logging.info("PADaviation finished")
+
         return concatenated_tables
 class ExcellentAirScraper(AirlineScraper):
     def login(self):
@@ -207,16 +211,11 @@ class ExcellentAirScraper(AirlineScraper):
     def html_to_df(self):
 
         html = self.driver.page_source 
-        
-        # get Dates 
-        #soup = BeautifulSoup(html, 'html.parser')
-        #dates = [header.get_text() for header in soup.find_all('h1')]
 
         soup = BeautifulSoup(html, 'html.parser')
 
         # Find all elements with the "flight" class
         flight_elements = soup.find_all('div', class_='flight')
-        print("flight elements:", flight_elements)
 
         # Create a list to store the extracted data
         data = []
@@ -240,7 +239,17 @@ class ExcellentAirScraper(AirlineScraper):
 
         # Create a Pandas DataFrame from the extracted data
         df = pd.DataFrame(data)
+        # Format Table
+        
+        df["Start Time"] = pd.to_datetime(df["Start Time"], format='%d.%m.%Y %H:%M')
+        df["End Time"] = pd.to_datetime(df["End Time"], format='%H:%M')
+        df["Departure Date"] = df["Start Time"].dt.date
+        df["Start Time"] = df["Start Time"].dt.strftime('%H:%M')
+        df["Airline"] = "ExcellentAir (ECA)"
+        df = df.drop("Flight Number", axis=1)
+        # TODO: Add price
 
         # Print the DataFrame
-        print(df)
+        print("ExcellentAir:\n", df)
+        logging.info("ExcellentAir finished")
         raise

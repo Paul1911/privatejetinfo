@@ -27,21 +27,21 @@ user_pw_ECA = config['user_password_ECA']
 
 if __name__ == "__main__":
 
-    #with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
-    #    AirHamburg.login()
-    #    html = AirHamburg.get_table_html()
-    #    df = AirHamburg.html_to_df(html)
-    #print(df)
+    with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
+        AirHamburg.login()
+        html = AirHamburg.get_table_html()
+        df = AirHamburg.html_to_df(html)
+    #    print(df)
 
-    #with scraper.PadaviationScraper(user_PVD, user_pw_PVD, user_airline_PVD, user_empno) as PadAviation:
-    #    PadAviation.login()
-    #    df = PadAviation.html_to_df()
+    with scraper.PadaviationScraper(user_PVD, user_pw_PVD, user_airline_PVD, user_empno) as PadAviation:
+        PadAviation.login()
+        df = PadAviation.html_to_df()
     #    print(df)
 
     with scraper.ExcellentAirScraper("", user_pw_ECA, "", "") as ExcellentAir:
         ExcellentAir.login()
         df = ExcellentAir.html_to_df()
-        print(df)
+    #    print(df)
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
