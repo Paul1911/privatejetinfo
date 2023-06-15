@@ -24,10 +24,15 @@ user_empno = config['user_empno']
 # ExcellentAir ECA
 user_pw_ECA = config['user_password_ECA']
 
+# Platoon Aviation 05
+user_05 = config['user_05']
+user_pw_05 = config['user_password_05']
+user_airline_05 = config['user_airline_05']
+user_empno = config['user_empno']
 
 if __name__ == "__main__":
 
-    with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
+    '''with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
         AirHamburg.login()
         html = AirHamburg.get_table_html()
         df_AHO = AirHamburg.html_to_df(html)
@@ -38,7 +43,11 @@ if __name__ == "__main__":
 
     with scraper.ExcellentAirScraper("", user_pw_ECA, "", "") as ExcellentAir:
         ExcellentAir.login()
-        df_ECA = ExcellentAir.html_to_df()
+        df_ECA = ExcellentAir.html_to_df()'''
+
+    with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
+        PlatoonAviation.login()
+        df_05 = PlatoonAviation.html_to_df()
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
