@@ -368,9 +368,16 @@ class SilverCloudAir(AirlineScraper):
         soup = BeautifulSoup(html, 'html.parser')
         flight_times = [item.text for item in soup.find_all(class_='segment__flight-time')]
         flight_info = [item.text.split("arrow_forward") for item in soup.find_all(class_='lift__title')]
-        oandd = flight_info[::2]
         actype = [item for sublist in flight_info[1::2] for item in sublist]
-        print(actype,"\n", oandd)
+        oandd = flight_info[::2]
+        dep = [leg[0].split("(") for leg in oandd]
+        dep_city = [i[0] for i in dep]
+        dep_iata = [i[1][:3] for i in dep]
+        arr = [leg[1].split("(") for leg in oandd]
+        arr_city = [i[0] for i in arr]
+        arr_iata = [i[1][:3] for i in arr]
+        print(dep_city, dep_iata, arr_city, arr_iata)
+
         raise
         
 
