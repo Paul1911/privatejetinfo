@@ -16,7 +16,7 @@ class AirlineScraper:
         self.user_empno = user_empno
 
     def __enter__(self):
-        self.driver = webdriver.Firefox()
+        self.driver = webdriver.Edge()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -34,9 +34,6 @@ class AirHamburgScraper(AirlineScraper):
 
         time.sleep(2)
         id_box = self.driver.find_element(By.ID, "username")
-        #id_box = WebDriverWait(self.driver, 10).until(
-        #    EC.visibility_of_element_located((By.ID, "username"))
-        #)
         id_box.send_keys(self.user)
 
         pass_box = self.driver.find_element(By.NAME, "password")
@@ -140,6 +137,7 @@ class AirHamburgScraper(AirlineScraper):
         print("Air Hamburg:\n", df)
         logging.info("Air Hamburg finished")
         return df
+    
 class PadaviationScraper(AirlineScraper):
     def login(self):
         self.driver.get("https://traveller.padaviation.com/")
@@ -198,6 +196,7 @@ class PadaviationScraper(AirlineScraper):
         logging.info("PADaviation finished")
 
         return concatenated_tables
+    
 class ExcellentAirScraper(AirlineScraper):
     def login(self):
         self.driver.get("https://excellentair.de/en/ferry-flights-for-crews/")
@@ -341,3 +340,193 @@ class PlatoonAviationScraper(AirlineScraper):
         print("Platoon Aviation:\n", df)
         logging.info("Platoon Aviation finished")
         return df
+    
+class SilverCloudAir(AirlineScraper):
+    def login(self):
+        self.driver.get("https://www.silver-cloud-air.com/id-travel/")
+        accept_cookies_button = self.driver.find_element(By.ID, "cde-consent")
+        accept_cookies_button.click()
+        # Login
+        password_box = self.driver.find_element(By.ID, "pwbox-3559")
+        password_box.send_keys(self.user_pw)
+        login_button = self.driver.find_element(By.NAME, "Submit")
+        login_button.click()       
+
+    def html_to_df(self):
+
+        # Get the link to the API
+        wait = WebDriverWait(self.driver, 20)  # Adjust the timeout as needed
+        element = wait.until(EC.presence_of_element_located((By.ID, "avinodeApp")))
+        div_content = element.get_attribute("innerHTML")
+        soup = BeautifulSoup(div_content, 'html.parser')
+        api_link = soup.find("iframe")["src"]
+        print(api_link)
+
+        # Get actual flights
+        self.driver.get(api_link)
+        html = self.driver.page_source 
+        soup = BeautifulSoup(html, 'html.parser')
+        flight_times = [item.text for item in soup.find_all(class_='segment__flight-time')]
+        flight_info = [item.text.split("arrow_forward") for item in soup.find_all(class_='lift__title')]
+        oandd = flight_info[::2]
+        actype = [item for sublist in flight_info[1::2] for item in sublist]
+        print(actype,"\n", oandd)
+        raise
+        
+
+
+        soup2 = soup.body.find_all("div", class_='search-hit-list-item')
+
+        print(soup2)
+
+        # Extracting information
+        data = []
+        for item in soup2:
+            try:
+                row = {}
+                soup = BeautifulSoup(str(item), 'html.parser')
+                
+                # Extracting airport and airport code
+                airports = soup.find('span', class_='lift__title').text.split('arrow_forward')
+                row['Departure Airport'] = airports[0].strip()
+                row['Destination Airport'] = airports[1].strip()
+                row['Departure Airport Code'] = airports[0].strip().split('(')[1].split(')')[0]
+                row['Destination Airport Code'] = airports[1].strip().split('(')[1].split(')')[0]
+                
+                # Extracting departure time
+                row['Departure Date'] = soup.select_one('p:contains("Available:") span').text.strip().split(" ")[0]
+                row['Comment'] = "Valid departure dates: " + soup.select_one('p:contains("Available:") span').text.strip()
+                
+                # Extracting flight time
+                row['Flight Time'] = soup.find(class_='segment__flight-time').text.strip()
+                print(row['Flight Time'])
+                
+                # AC type
+                row['Aircraft Type'] = soup.find(class_='lift__title').text.strip()
+                print(row)
+
+                data.append(row)
+            except:
+                pass
+            
+
+        # Creating DataFrame
+        df = pd.DataFrame(data)
+        raise
+
+        print(df)
+        raise
+
+        test = soup.body.div
+
+        iframe = soup.find("iframe", id="avinodeSearchForm")
+        iframe_src = iframe["src"]
+
+        # Load the content of the iframe separately
+        import requests
+        iframe_html = requests.get(iframe_src).text
+        iframe_soup = BeautifulSoup(iframe_html, 'html.parser')
+
+        divs = iframe_soup.find_all("div", class_="search-hit-list-item-details__lift-itinerary")
+        for div in divs:
+            print(div)
+
+        raise
+
+        
+
+        data = []
+        divs = soup.find_all("div", class_="search-hit-list-item-details__lift-itinerary")
+
+        print("divs: ", divs)
+
+        for div in divs:
+            origin = div.find("span", class_="lift__title t-empty-leg-description").span.text.split(',')[0].strip()
+            origin_iata = div.find("span", class_="lift__title t-empty-leg-description").span.text.split('(')[1].split(')')[0]
+            destination = div.find("span", class_="lift__title t-empty-leg-description").find_all('span')[-1].text.split(',')[0].strip()
+            destination_iata = div.find("span", class_="lift__title t-empty-leg-description").find_all('span')[-1].text.split('(')[1].split(')')[0]
+            dep_date = div.find("p", text="Available:").next_sibling.strip()
+            ac_type = div.find("span", class_="lift__title").text.strip()
+            seats_avl = div.find("span", class_="lift__pax").text.split(' ')[-1]
+            flt_duration = div.find("td", class_="segment__flight-time").text.strip()
+
+            data.append([origin, origin_iata, destination, destination_iata, dep_date, ac_type, seats_avl, flt_duration])
+
+        # Create DataFrame
+        columns = ['origin', 'origin_iata', 'destination', 'destination_iata', 'dep_date', 'ac_type', 'seats_avl', 'flt_duration']
+        df = pd.DataFrame(data, columns=columns)
+        print(df)
+
+
+
+
+
+
+
+        '''
+        # Find the main data container
+        divs = soup.find_all("div", class_="search-hit-list-item-details__lift-itinerary")
+
+        # Initialize an empty list to store the extracted data
+        data = []
+
+        print(divs)
+        # Iterate over each div
+        for div in divs:
+            dep_iata = div.find("td", class_="segment__start-end").text
+            print("iata code: ", dep_iata)
+            raise
+        
+
+            lift_pax = div.find('span', class_='lift__pax').text
+
+
+            # Extract the flight information from the current div
+            aircraft_type = div.find("div", class_="flights-left").find("span").find("b").text
+            seats = div.find("div", class_="flights-left").find_all("span")[1].find("b").text
+
+            departure_location = div.find("div", class_="flights-departure").find_all("span")[0].text
+            departure_iata = div.find("div", class_="flights-departure").find_all("h3")[0].text
+            departure_time = div.find("div", class_="flights-departure").find_all("span")[1].text
+
+            duration = div.find("div", class_="flights-duration").find("span", class_="durationinfo").text[0:5]
+            dep_date = div.find("div", class_="flights-duration").find("span", class_="distanceinfo").find("b").text
+
+            arrival_location = div.find("div", class_="flights-arrival").find_all("span")[0].text
+            arrival_iata = div.find("div", class_="flights-arrival").find_all("h3")[0].text
+            arrival_time = div.find("div", class_="flights-arrival").find_all("span")[1].text
+
+            price = div.find("div", class_="flights-right").find_all("span")[2].find("b").text
+            
+            # Create a dictionary for the current flight information
+            flight_data = {
+                "Aircraft Type": aircraft_type,
+                "Seats": seats,
+                "Departure IATA Code": departure_iata,
+                "Departure Location": departure_location,
+                "Departure Time": departure_time,
+                "Duration": duration,
+                "Departure Date": dep_date,
+                "Arrival IATA Code": arrival_iata,
+                "Arrival Location": arrival_location,
+                "Arrival Time": arrival_time,
+                "Price": price,
+            }
+
+            # Append the flight data to the list
+            data.append(flight_data)
+
+        # Create a Pandas DataFrame from the extracted data
+        df = pd.DataFrame(data)
+
+        # Set Datatypes and Carrier
+        df["Departure Time"] = pd.to_datetime(df["Departure Time"], format='%H:%M')
+        df["Arrival Time"] = pd.to_datetime(df["Arrival Time"], format='%H:%M')
+        df["Duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
+        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%d.%m.%Y').dt.date
+        df["Airline"] = "Platon Aviation (05)"
+
+        # Print the DataFrame
+        print("Platoon Aviation:\n", df)
+        logging.info("Platoon Aviation finished")
+        return df'''

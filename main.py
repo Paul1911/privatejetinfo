@@ -9,17 +9,17 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 
+user_empno = config['user_empno']
+
 # Air Hamburg AHO
 user_AHO = config['user_AHO']
 user_pw_AHO = config['user_password_AHO']
 user_airline_AHO = config['user_airline_AHO']
-user_empno = config['user_empno']
 
 # PadAviation PVD
 user_PVD = config['user_PVD']
 user_pw_PVD = config['user_password_PVD']
 user_airline_PVD = config['user_airline_PVD']
-user_empno = config['user_empno']
 
 # ExcellentAir ECA
 user_pw_ECA = config['user_password_ECA']
@@ -28,7 +28,6 @@ user_pw_ECA = config['user_password_ECA']
 user_05 = config['user_05']
 user_pw_05 = config['user_password_05']
 user_airline_05 = config['user_airline_05']
-user_empno = config['user_empno']
 
 if __name__ == "__main__":
 
@@ -45,9 +44,13 @@ if __name__ == "__main__":
         ExcellentAir.login()
         df_ECA = ExcellentAir.html_to_df()'''
 
-    with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
-        PlatoonAviation.login()
-        df_05 = PlatoonAviation.html_to_df()
+    #with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
+    #    PlatoonAviation.login()
+    #    df_05 = PlatoonAviation.html_to_df()
+
+    with scraper.SilverCloudAir(user_05, user_pw_05, user_airline_05, user_empno) as SilverCloud:
+        SilverCloud.login()
+        df_silver = SilverCloud.html_to_df()
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
@@ -62,7 +65,7 @@ if __name__ == "__main__":
             {0}
         </body>
         </html>
-        """.format(df.to_html())
+        """.format(df_05.to_html())
     part1 = MIMEText(html, 'html')
 
     em = MIMEMultipart()
