@@ -3,6 +3,7 @@ import scraper
 import logging
 import pandas as pd
 import random
+from datetime import datetime
 from email.message import EmailMessage
 import smtplib
 import ssl
@@ -37,7 +38,7 @@ user_pw_SCR = config['user_password_SCR']
 
 if __name__ == "__main__":
 
-    with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
+    '''with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
         AirHamburg.login()
         html = AirHamburg.get_table_html()
         df_AHO = AirHamburg.html_to_df(html)
@@ -95,23 +96,48 @@ if __name__ == "__main__":
     df = df.drop(["Distance","Departure ICAO","Arrival ICAO"], axis=1)
     df = df.fillna("")
     df.to_csv("main.csv")
-    print(df)
-    raise
+    print(df)'''
+    df = pd.read_csv("main.csv")
+    
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
     email_receiver = ''
-    subject = 'testsubject'
+    subject = 'Privatejet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
     
-
+    from pretty_html_table import build_table
+    html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif')
     html = """\
         <html>
         <head></head>
         <body>
+            <h1>Currently published Private Jet Positioning flights:</h1>
+            <div style="margin-bottom: 10px;">No guarantee for data correctness. 
+            Full information on the respective privatejet airline web page, 
+            which are accessible via MyIDTravel. 
+            If you see any errors or wrong figures, please message paul.friedrich@gmx.net.</div>
+
             {0}
+
+            <h1>Excellentair Fares (incl. TAX and Fees)</h1>
+            <h4>See MyIDTravel for latest price information.</h4>
+            <ul>
+                <li><strong>Germany:</strong> € 39,00</li>
+                <li><strong>Europa:</strong> € 49,00</li>
+                <li><strong>North Africa / Canaries:</strong> € 59,00</li>
+            </ul>
+            <h1>Silver Cloud Air Fares</h1>
+            <h4>See MyIDTravel for latest price information.</h4>
+            <ul>
+                <li><strong>Flights within Germany:</strong> € 100</li>
+                <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250</li>
+                <li><strong>Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.</strong></li>
+            </ul>
+
         </body>
         </html>
-        """.format(df_05.to_html())
+        """.format(html_table_blue_light)
+    
     part1 = MIMEText(html, 'html')
 
     em = MIMEMultipart()
