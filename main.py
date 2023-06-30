@@ -1,13 +1,15 @@
 from config import config
 import scraper 
 import logging
-logging.basicConfig(level=logging.INFO)
+import pandas as pd
 from email.message import EmailMessage
 import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
+
+logging.basicConfig(level=logging.INFO)
 
 user_empno = config['user_empno']
 
@@ -29,9 +31,12 @@ user_05 = config['user_05']
 user_pw_05 = config['user_password_05']
 user_airline_05 = config['user_airline_05']
 
+# Silver Cloud Air SCR
+user_pw_SCR = config['user_password_SCR']
+
 if __name__ == "__main__":
 
-    '''with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
+    with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
         AirHamburg.login()
         html = AirHamburg.get_table_html()
         df_AHO = AirHamburg.html_to_df(html)
@@ -42,15 +47,40 @@ if __name__ == "__main__":
 
     with scraper.ExcellentAirScraper("", user_pw_ECA, "", "") as ExcellentAir:
         ExcellentAir.login()
-        df_ECA = ExcellentAir.html_to_df()'''
+        df_ECA = ExcellentAir.html_to_df()
 
-    #with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
-    #    PlatoonAviation.login()
-    #    df_05 = PlatoonAviation.html_to_df()
+    with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
+        PlatoonAviation.login()
+        df_05 = PlatoonAviation.html_to_df()
 
-    with scraper.SilverCloudAir(user_05, user_pw_05, user_airline_05, user_empno) as SilverCloud:
+    with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
         SilverCloud.login()
         df_silver = SilverCloud.html_to_df()
+
+    print(df_AHO.columns, df_PVD.columns, df_ECA.columns, df_05.columns, df_silver.columns)
+
+    # Create merge df
+    columns = [
+    'Departure Date',
+    'Departure IATA',
+    'Arrival IATA',
+    'Departure ICAO',
+    'Arrival ICAO',
+    'Departure Airport',
+    'Arrival Airport',
+    'Airline',
+    'Aircraft Type',
+    'Departure Time',
+    'Arrival Time',
+    'Duration',
+    'Distance',
+    'Available Seats',
+    'Price',
+    'Comment'
+    ]
+    df=pd.DataFrame(columns=columns)
+    print(df)
+    raise
 
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
