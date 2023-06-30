@@ -366,7 +366,19 @@ class SilverCloudAir(AirlineScraper):
         self.driver.get(api_link)
         html = self.driver.page_source 
         soup = BeautifulSoup(html, 'html.parser')
-        flight_times = [item.text for item in soup.find_all(class_='segment__flight-time')]
+
+        # Dep Date
+        dep_daterange = []
+        dep_date = []
+        for p_tag in soup.find("div", class_="search-hit-list").find_all("p")[::4]:
+            if "to" in p_tag.get_text():
+                dep_daterange.append(p_tag.get_text().replace("\xa0"," "))
+            else:
+                dep_daterange.append("")
+            dep_date.append(p_tag.get_text()[11:21])
+        print(dep_daterange)
+
+        flight_duration = [item.text for item in soup.find_all(class_='segment__flight-time')]
         flight_info = [item.text.split("arrow_forward") for item in soup.find_all(class_='lift__title')]
         actype = [item for sublist in flight_info[1::2] for item in sublist]
         oandd = flight_info[::2]
@@ -378,162 +390,19 @@ class SilverCloudAir(AirlineScraper):
         arr_iata = [i[1][:3] for i in arr]
         print(dep_city, dep_iata, arr_city, arr_iata)
 
-        raise
-        
-
-
-        soup2 = soup.body.find_all("div", class_='search-hit-list-item')
-
-        print(soup2)
-
-        # Extracting information
-        data = []
-        for item in soup2:
-            try:
-                row = {}
-                soup = BeautifulSoup(str(item), 'html.parser')
-                
-                # Extracting airport and airport code
-                airports = soup.find('span', class_='lift__title').text.split('arrow_forward')
-                row['Departure Airport'] = airports[0].strip()
-                row['Destination Airport'] = airports[1].strip()
-                row['Departure Airport Code'] = airports[0].strip().split('(')[1].split(')')[0]
-                row['Destination Airport Code'] = airports[1].strip().split('(')[1].split(')')[0]
-                
-                # Extracting departure time
-                row['Departure Date'] = soup.select_one('p:contains("Available:") span').text.strip().split(" ")[0]
-                row['Comment'] = "Valid departure dates: " + soup.select_one('p:contains("Available:") span').text.strip()
-                
-                # Extracting flight time
-                row['Flight Time'] = soup.find(class_='segment__flight-time').text.strip()
-                print(row['Flight Time'])
-                
-                # AC type
-                row['Aircraft Type'] = soup.find(class_='lift__title').text.strip()
-                print(row)
-
-                data.append(row)
-            except:
-                pass
-            
-
-        # Creating DataFrame
-        df = pd.DataFrame(data)
-        raise
-
+        data=[dep_date, dep_iata, dep_city, arr_iata, arr_city, flight_duration, actype, dep_daterange]
+        columns=['dep_date', 'dep_iata', 'dep_city', 'arr_iata', 'arr_city', 'flight_duration', 'actype', 'dep_daterange']
+        data_dict = {col: lst for col, lst in zip(columns, data)}
+        df = pd.DataFrame(data_dict)
         print(df)
-        raise
-
-        test = soup.body.div
-
-        iframe = soup.find("iframe", id="avinodeSearchForm")
-        iframe_src = iframe["src"]
-
-        # Load the content of the iframe separately
-        import requests
-        iframe_html = requests.get(iframe_src).text
-        iframe_soup = BeautifulSoup(iframe_html, 'html.parser')
-
-        divs = iframe_soup.find_all("div", class_="search-hit-list-item-details__lift-itinerary")
-        for div in divs:
-            print(div)
-
-        raise
-
-        
-
-        data = []
-        divs = soup.find_all("div", class_="search-hit-list-item-details__lift-itinerary")
-
-        print("divs: ", divs)
-
-        for div in divs:
-            origin = div.find("span", class_="lift__title t-empty-leg-description").span.text.split(',')[0].strip()
-            origin_iata = div.find("span", class_="lift__title t-empty-leg-description").span.text.split('(')[1].split(')')[0]
-            destination = div.find("span", class_="lift__title t-empty-leg-description").find_all('span')[-1].text.split(',')[0].strip()
-            destination_iata = div.find("span", class_="lift__title t-empty-leg-description").find_all('span')[-1].text.split('(')[1].split(')')[0]
-            dep_date = div.find("p", text="Available:").next_sibling.strip()
-            ac_type = div.find("span", class_="lift__title").text.strip()
-            seats_avl = div.find("span", class_="lift__pax").text.split(' ')[-1]
-            flt_duration = div.find("td", class_="segment__flight-time").text.strip()
-
-            data.append([origin, origin_iata, destination, destination_iata, dep_date, ac_type, seats_avl, flt_duration])
-
-        # Create DataFrame
-        columns = ['origin', 'origin_iata', 'destination', 'destination_iata', 'dep_date', 'ac_type', 'seats_avl', 'flt_duration']
-        df = pd.DataFrame(data, columns=columns)
-        print(df)
-
-
-
-
-
-
-
-        '''
-        # Find the main data container
-        divs = soup.find_all("div", class_="search-hit-list-item-details__lift-itinerary")
-
-        # Initialize an empty list to store the extracted data
-        data = []
-
-        print(divs)
-        # Iterate over each div
-        for div in divs:
-            dep_iata = div.find("td", class_="segment__start-end").text
-            print("iata code: ", dep_iata)
-            raise
-        
-
-            lift_pax = div.find('span', class_='lift__pax').text
-
-
-            # Extract the flight information from the current div
-            aircraft_type = div.find("div", class_="flights-left").find("span").find("b").text
-            seats = div.find("div", class_="flights-left").find_all("span")[1].find("b").text
-
-            departure_location = div.find("div", class_="flights-departure").find_all("span")[0].text
-            departure_iata = div.find("div", class_="flights-departure").find_all("h3")[0].text
-            departure_time = div.find("div", class_="flights-departure").find_all("span")[1].text
-
-            duration = div.find("div", class_="flights-duration").find("span", class_="durationinfo").text[0:5]
-            dep_date = div.find("div", class_="flights-duration").find("span", class_="distanceinfo").find("b").text
-
-            arrival_location = div.find("div", class_="flights-arrival").find_all("span")[0].text
-            arrival_iata = div.find("div", class_="flights-arrival").find_all("h3")[0].text
-            arrival_time = div.find("div", class_="flights-arrival").find_all("span")[1].text
-
-            price = div.find("div", class_="flights-right").find_all("span")[2].find("b").text
-            
-            # Create a dictionary for the current flight information
-            flight_data = {
-                "Aircraft Type": aircraft_type,
-                "Seats": seats,
-                "Departure IATA Code": departure_iata,
-                "Departure Location": departure_location,
-                "Departure Time": departure_time,
-                "Duration": duration,
-                "Departure Date": dep_date,
-                "Arrival IATA Code": arrival_iata,
-                "Arrival Location": arrival_location,
-                "Arrival Time": arrival_time,
-                "Price": price,
-            }
-
-            # Append the flight data to the list
-            data.append(flight_data)
-
-        # Create a Pandas DataFrame from the extracted data
-        df = pd.DataFrame(data)
 
         # Set Datatypes and Carrier
-        df["Departure Time"] = pd.to_datetime(df["Departure Time"], format='%H:%M')
-        df["Arrival Time"] = pd.to_datetime(df["Arrival Time"], format='%H:%M')
-        df["Duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
-        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%d.%m.%Y').dt.date
-        df["Airline"] = "Platon Aviation (05)"
+        df["dep_date"] = pd.to_datetime(df["Departure Time"], format='%d.%m.%Y')
+        df["flight_duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
+        df["Airline"] = "Silver Cloud Air"
+        df["price"] = "see below"
 
-        # Print the DataFrame
-        print("Platoon Aviation:\n", df)
-        logging.info("Platoon Aviation finished")
-        return df'''
+        print("Silver Cloud Air:\n", df)
+        logging.info("Silver Cloud Air finished")
+
+        return df
