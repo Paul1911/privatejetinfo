@@ -2,6 +2,7 @@ from config import config
 import scraper 
 import logging
 import pandas as pd
+import random
 from email.message import EmailMessage
 import smtplib
 import ssl
@@ -11,7 +12,7 @@ from email.mime.multipart import MIMEMultipart
 
 logging.basicConfig(level=logging.INFO)
 
-user_empno = config['user_empno']
+user_empno = random.randint(35000, 50000)
 
 # Air Hamburg AHO
 user_AHO = config['user_AHO']
@@ -79,6 +80,21 @@ if __name__ == "__main__":
     'Comment'
     ]
     df=pd.DataFrame(columns=columns)
+
+    # Big Merge
+    for df in [df, df_AHO, df_PVD, df_ECA, df_05, df_silver]:
+        print(df.dtypes)
+    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_silver])#, ignore_index=True)
+
+    # Formatting 
+    df['Departure IATA'] = df['Departure IATA'].fillna(df['Departure ICAO'])
+    df['Arrival IATA'] = df['Arrival IATA'].fillna(df['Arrival ICAO'])
+    df = df.rename(columns={'Departure IATA': 'Departure IATA/ICAO', 'Arrival IATA': 'Arrival IATA/ICAO'})
+    df = df.sort_values(by='Departure Date')
+    df = df.reset_index(drop=True)
+    df = df.drop(["Distance","Departure ICAO","Arrival ICAO"], axis=1)
+    df = df.fillna("")
+    df.to_csv("main.csv")
     print(df)
     raise
 

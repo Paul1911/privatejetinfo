@@ -2,6 +2,7 @@ import logging
 import time
 import pandas as pd
 from bs4 import BeautifulSoup
+import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
@@ -86,8 +87,8 @@ class AirHamburgScraper(AirlineScraper):
             'Arrival Time': [],
             'Duration': [],
             'Distance': [],
-            'Aircraft Type': [],
-            'Seats': [],
+            'Aircraft': [],
+            'Available Seats': [],
             'Price': []
         }
 
@@ -109,9 +110,9 @@ class AirHamburgScraper(AirlineScraper):
 
             # Extract flight info
             aircraft_type = flight_item.find_all('span')[0].text.strip().split(":")[1]
-            data['Aircraft Type'].append(aircraft_type if aircraft_type else '')
+            data['Aircraft'].append(aircraft_type if aircraft_type else '')
             seats = flight_item.find_all('span')[1].text.strip().split(" ")[1]
-            data['Seats'].append(seats if seats else '')
+            data['Available Seats'].append(seats if seats else '')
             duration = flight_item.find('span', {'class': 'durationinfo'}).text.strip().split("/")[0]
             data['Duration'].append(duration if duration else '')
             distance = flight_item.find('span', {'class': 'durationinfo'}).text.strip().split("/")[1]
@@ -134,6 +135,11 @@ class AirHamburgScraper(AirlineScraper):
 
         # Create a DataFrame from the extracted data
         df = pd.DataFrame(data)
+        # Adjust dtypes
+        df['Departure Date'] = pd.to_datetime(df['Departure Date'], format='%d.%m.%Y')
+        for i in df['Duration']:
+            print(i)
+        df['Duration'] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M h").time())
         print("Air Hamburg:\n", df)
         logging.info("Air Hamburg finished")
         return df
@@ -182,17 +188,18 @@ class PadaviationScraper(AirlineScraper):
 
         # Format Table
         concatenated_tables = pd.concat(tables, axis=0)
-        concatenated_tables["Departure Date"] = concatenated_tables["Departure Date"].astype('datetime64[ns]')
+        concatenated_tables["Departure Date"] = pd.to_datetime(concatenated_tables["Departure Date"], format='%A, %d %b %Y')
         concatenated_tables["Departure Airport"] = concatenated_tables["From"].str[:-4]
         concatenated_tables["Departure ICAO"] = concatenated_tables["From"].str[-4:]
         concatenated_tables["Arrival Airport"] = concatenated_tables["To"].str[:-4]
         concatenated_tables["Arrival ICAO"] = concatenated_tables["To"].str[-4:]
         concatenated_tables["Departure Time"] = pd.to_datetime(concatenated_tables["Time"].str[0:5],  format='%H:%M').dt.strftime('%H:%M')
         concatenated_tables["Arrival Time"] = pd.to_datetime(concatenated_tables["Time"].str[5:],  format='%H:%M').dt.strftime('%H:%M')
-        concatenated_tables["Aircraft Type"] = concatenated_tables["Aircraft"].str[:-11]
-        concatenated_tables["Price"] = concatenated_tables["Price"].str[:-15].astype('float64')
+        concatenated_tables["Aircraft"] = concatenated_tables["Aircraft"].str[:-11]
+        concatenated_tables["Price"] = concatenated_tables["Price"].str[:-15].astype('str') + " €"
         concatenated_tables["Airline"] = "PAD Aviation (PVD)"
-        concatenated_tables = concatenated_tables.drop(["Time", "Unnamed: 5"], axis=1).reset_index(drop=True)
+        concatenated_tables = concatenated_tables.drop(["Time", "Unnamed: 5", "From", "To"], axis=1).reset_index(drop=True)
+
 
         print("PADAviation:\n", concatenated_tables)
         logging.info("PADaviation finished")
@@ -244,10 +251,11 @@ class ExcellentAirScraper(AirlineScraper):
         
         df["Departure Time"] = pd.to_datetime(df["Departure Time"], format='%d.%m.%Y %H:%M')
         df["Arrival Time"] = pd.to_datetime(df["Arrival Time"], format='%H:%M')
-        df["Departure Date"] = df["Departure Time"].dt.date
+        df["Departure Date"] = pd.to_datetime(df["Departure Time"].dt.date, format='%Y-%m-%d') 
         df["Departure Time"] = df["Departure Time"].dt.strftime('%H:%M')
+        df["Arrival Time"] = df["Arrival Time"].dt.strftime('%H:%M')
         df["Airline"] = "ExcellentAir (ECA)"
-        df["Price"] = "EUR 39(DE), 49(EU), 59(NorthAfrica, Canaries)"
+        df["Price"] = "see below"
         df = df.drop("Flight Number", axis=1)
         # TODO: Add price
 
@@ -313,7 +321,7 @@ class PlatoonAviationScraper(AirlineScraper):
             
             # Create a dictionary for the current flight information
             flight_data = {
-                "Aircraft Type": aircraft_type,
+                "Aircraft": aircraft_type,
                 "Available Seats": seats,
                 "Departure IATA": departure_iata,
                 "Departure Airport": departure_location,
@@ -333,11 +341,11 @@ class PlatoonAviationScraper(AirlineScraper):
         df = pd.DataFrame(data)
 
         # Set Datatypes and Carrier
-        df["Departure Time"] = pd.to_datetime(df["Departure Time"], format='%H:%M')
-        df["Arrival Time"] = pd.to_datetime(df["Arrival Time"], format='%H:%M')
-        df["Duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
-        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%d.%m.%Y').dt.date
-        df["Airline"] = "Platon Aviation (05)"
+        df["Departure Time"] = df["Departure Time"].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M"))
+        df["Arrival Time"] = df['Arrival Time'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M"))
+        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M"))
+        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%d.%m.%Y')
+        df["Airline"] = "Platoon Aviation (05)"
 
         # Print the DataFrame
         print("Platoon Aviation:\n", df)
@@ -363,7 +371,6 @@ class SilverCloudAir(AirlineScraper):
         div_content = element.get_attribute("innerHTML")
         soup = BeautifulSoup(div_content, 'html.parser')
         api_link = soup.find("iframe")["src"]
-        print(api_link)
 
         # Get actual flights
         self.driver.get(api_link)
@@ -379,7 +386,6 @@ class SilverCloudAir(AirlineScraper):
             else:
                 dep_daterange.append("")
             dep_date.append(p_tag.get_text()[11:21])
-        print(dep_daterange)
 
         flight_duration = [item.text for item in soup.find_all(class_='segment__flight-time')]
         flight_info = [item.text.split("arrow_forward") for item in soup.find_all(class_='lift__title')]
@@ -391,21 +397,19 @@ class SilverCloudAir(AirlineScraper):
         arr = [leg[1].split("(") for leg in oandd]
         arr_city = [i[0] for i in arr]
         arr_iata = [i[1][:3] for i in arr]
-        print(dep_city, dep_iata, arr_city, arr_iata)
 
         data=[dep_date, dep_iata, dep_city, arr_iata, arr_city, flight_duration, actype, dep_daterange]
-        columns=['Departure Date', 'Departure IATA', 'Departure Airport', 'Arrival IATA', 'Arrival Airport', 'Duration', 'Aircraft Type', 'Comment']
+        columns=['Departure Date', 'Departure IATA', 'Departure Airport', 'Arrival IATA', 'Arrival Airport', 'Duration', 'Aircraft', 'Comment']
         data_dict = {col: lst for col, lst in zip(columns, data)}
         df = pd.DataFrame(data_dict)
-        print(df)
 
         # Set Datatypes and Carrier
         df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%Y-%m-%d')
-        df["Duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
+        #df["Duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
+        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").time())
         df["Airline"] = "Silver Cloud Air (SCR)"
-        df["price"] = "see below"
+        df["Price"] = "see below"
 
         print("Silver Cloud Air:\n", df)
         logging.info("Silver Cloud Air finished")
-
         return df
