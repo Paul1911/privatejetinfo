@@ -1,4 +1,4 @@
-from config import config
+from config import config,maillist
 import scraper 
 import logging
 import pandas as pd
@@ -36,77 +36,130 @@ user_airline_05 = config['user_airline_05']
 # Silver Cloud Air SCR
 user_pw_SCR = config['user_password_SCR']
 
-if __name__ == "__main__":
-
-    '''with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
-        AirHamburg.login()
-        html = AirHamburg.get_table_html()
-        df_AHO = AirHamburg.html_to_df(html)
-
-    with scraper.PadaviationScraper(user_PVD, user_pw_PVD, user_airline_PVD, user_empno) as PadAviation:
-        PadAviation.login()
-        df_PVD = PadAviation.html_to_df()
-
-    with scraper.ExcellentAirScraper("", user_pw_ECA, "", "") as ExcellentAir:
-        ExcellentAir.login()
-        df_ECA = ExcellentAir.html_to_df()
-
-    with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
-        PlatoonAviation.login()
-        df_05 = PlatoonAviation.html_to_df()
-
-    with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
-        SilverCloud.login()
-        df_silver = SilverCloud.html_to_df()
-
-    print(df_AHO.columns, df_PVD.columns, df_ECA.columns, df_05.columns, df_silver.columns)
-
-    # Create merge df
+def create_merge_df():
     columns = [
-    'Departure Date',
-    'Departure IATA',
-    'Arrival IATA',
-    'Departure ICAO',
-    'Arrival ICAO',
-    'Departure Airport',
-    'Arrival Airport',
-    'Airline',
-    'Aircraft Type',
-    'Departure Time',
-    'Arrival Time',
-    'Duration',
-    'Distance',
-    'Available Seats',
-    'Price',
-    'Comment'
+        'Departure Date',
+        'Departure IATA',
+        'Arrival IATA',
+        'Departure ICAO',
+        'Arrival ICAO',
+        'Departure Airport',
+        'Arrival Airport',
+        'Airline',
+        'Aircraft',
+        'Departure Time',
+        'Arrival Time',
+        'Duration',
+        'Distance',
+        'Available Seats',
+        'Price',
+        'Comment'
     ]
     df=pd.DataFrame(columns=columns)
+    return df
+
+def get_data():
+    errors = []
+    try:
+        with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
+            AirHamburg.login()
+            html = AirHamburg.get_table_html()
+            df_AHO = AirHamburg.html_to_df(html)
+    except:
+        errors.append("Air Hamburg failed")
+    finally:
+        pass
+    
+    try:
+        with scraper.PadaviationScraper(user_PVD, user_pw_PVD, user_airline_PVD, user_empno) as PadAviation:
+            PadAviation.login()
+            df_PVD = PadAviation.html_to_df()
+    except:
+        errors.append("PadAviation failed")
+    finally:
+        pass
+
+    try:
+        with scraper.ExcellentAirScraper("", user_pw_ECA, "", "") as ExcellentAir:
+            ExcellentAir.login()
+            df_ECA = ExcellentAir.html_to_df()
+    except:
+        errors.append("ExcellentAir failed")
+    finally:
+        pass    
+
+    try:
+        with scraper.PlatoonAviationScraper(user_05, user_pw_05, user_airline_05, user_empno) as PlatoonAviation:
+            PlatoonAviation.login()
+            df_05 = PlatoonAviation.html_to_df()
+    except:
+        errors.append("Platoon Aviation failed")
+    finally:
+        pass    
+    
+    try:
+        with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
+            SilverCloud.login()
+            df_silver = SilverCloud.html_to_df()
+    except:
+        errors.append("Silver Cloud Air failed")
+    finally:
+        pass    
+
+    return df_AHO, df_PVD, df_ECA, df_05, df_silver, errors
+
+
+if __name__ == "__main__":
+
+    # data retrieval
+    df_AHO, df_PVD, df_ECA, df_05, df_silver, errors = get_data()
+
+    #Create merge df    
+    df=create_merge_df()
 
     # Big Merge
-    for df in [df, df_AHO, df_PVD, df_ECA, df_05, df_silver]:
-        print(df.dtypes)
-    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_silver])#, ignore_index=True)
+    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_silver])
 
     # Formatting 
     df['Departure IATA'] = df['Departure IATA'].fillna(df['Departure ICAO'])
     df['Arrival IATA'] = df['Arrival IATA'].fillna(df['Arrival ICAO'])
     df = df.rename(columns={'Departure IATA': 'Departure IATA/ICAO', 'Arrival IATA': 'Arrival IATA/ICAO'})
-    df = df.sort_values(by='Departure Date')
+    df = df.sort_values(by=['Departure Date', 'Departure Time'])
     df = df.reset_index(drop=True)
     df = df.drop(["Distance","Departure ICAO","Arrival ICAO"], axis=1)
     df = df.fillna("")
+    df = df.drop_duplicates()
+    final_columns = [
+        'Departure Date',
+        'Departure IATA/ICAO',
+        'Arrival IATA/ICAO',
+        'Departure Airport',
+        'Arrival Airport',
+        'Airline',
+        'Aircraft Type',
+        'Departure Time',
+        'Arrival Time',
+        'Duration',
+        'Distance',
+        'Available Seats',
+        'Price',
+        'Comment'
+    ]
+    df = df.reindex(columns=final_columns)
     df.to_csv("main.csv")
-    print(df)'''
-    df = pd.read_csv("main.csv")
-    
+    #print(df)
+    #df = pd.read_csv("main.csv")
 
+    
+    # Mailing
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
-    email_receiver = ''
+    email_receiver = maillist
     subject = 'Privatejet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
     
     from pretty_html_table import build_table
-    html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif')
+    html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif', font_size='small',)
+        #width_dict=['auto','auto', 'auto', 'auto','auto', 'auto'])
     html = """\
         <html>
         <head></head>
@@ -142,14 +195,22 @@ if __name__ == "__main__":
 
     em = MIMEMultipart()
     em['From'] = email_sender
-    em['To'] = email_receiver
+    #em['CC'] = email_receiver
+    #em['BCC'] = ""
+    #rec = em['To'] + em['CC'] + em['BCC']
     em['Subject'] = subject
-    #em.set_content(body)
     em.attach(part1)
 
     context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
-        smtp.sendmail(email_sender, email_receiver, em.as_string())
-        logging.info("Mail sent")
+        for mailaddress in email_receiver:
+            em['To'] = mailaddress
+            try:
+                smtp.sendmail(email_sender, mailaddress, em.as_string())
+                logging.info(f"Mail sent to {mailaddress}.")
+            except:
+                logging.info(f"Mailing {mailaddress} did not work.")
+            finally:
+                pass

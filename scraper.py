@@ -137,9 +137,7 @@ class AirHamburgScraper(AirlineScraper):
         df = pd.DataFrame(data)
         # Adjust dtypes
         df['Departure Date'] = pd.to_datetime(df['Departure Date'], format='%d.%m.%Y')
-        for i in df['Duration']:
-            print(i)
-        df['Duration'] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M h").time())
+        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M h").strftime("%H:%M") + " h")
         print("Air Hamburg:\n", df)
         logging.info("Air Hamburg finished")
         return df
@@ -195,6 +193,10 @@ class PadaviationScraper(AirlineScraper):
         concatenated_tables["Arrival ICAO"] = concatenated_tables["To"].str[-4:]
         concatenated_tables["Departure Time"] = pd.to_datetime(concatenated_tables["Time"].str[0:5],  format='%H:%M').dt.strftime('%H:%M')
         concatenated_tables["Arrival Time"] = pd.to_datetime(concatenated_tables["Time"].str[5:],  format='%H:%M').dt.strftime('%H:%M')
+        # This duration calculation does not account for possible time zone changes
+        #concatenated_tables["Duration"] = pd.to_datetime(concatenated_tables["Arrival Time"]) - pd.to_datetime(concatenated_tables["Departure Time"])
+        #concatenated_tables["Duration"] = (concatenated_tables["Duration"].dt.total_seconds() // 60).astype(int)
+        #concatenated_tables["Duration"] = concatenated_tables["Duration"].apply(lambda x: f"{x // 60:02d}:{x % 60:02d} h")
         concatenated_tables["Aircraft"] = concatenated_tables["Aircraft"].str[:-11]
         concatenated_tables["Price"] = concatenated_tables["Price"].str[:-15].astype('str') + " €"
         concatenated_tables["Airline"] = "PAD Aviation (PVD)"
@@ -251,6 +253,8 @@ class ExcellentAirScraper(AirlineScraper):
         
         df["Departure Time"] = pd.to_datetime(df["Departure Time"], format='%d.%m.%Y %H:%M')
         df["Arrival Time"] = pd.to_datetime(df["Arrival Time"], format='%H:%M')
+        # This duration calculation does not account for possible time zone changes
+        #df["Duration"] = (df["Arrival Time"]-(pd.to_datetime(df["Departure Time"].dt.strftime('%H:%M'), format='%H:%M')))
         df["Departure Date"] = pd.to_datetime(df["Departure Time"].dt.date, format='%Y-%m-%d') 
         df["Departure Time"] = df["Departure Time"].dt.strftime('%H:%M')
         df["Arrival Time"] = df["Arrival Time"].dt.strftime('%H:%M')
@@ -343,7 +347,7 @@ class PlatoonAviationScraper(AirlineScraper):
         # Set Datatypes and Carrier
         df["Departure Time"] = df["Departure Time"].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M"))
         df["Arrival Time"] = df['Arrival Time'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M"))
-        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M"))
+        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M") + " h")
         df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%d.%m.%Y')
         df["Airline"] = "Platoon Aviation (05)"
 
@@ -405,8 +409,7 @@ class SilverCloudAir(AirlineScraper):
 
         # Set Datatypes and Carrier
         df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%Y-%m-%d')
-        #df["Duration"] = pd.to_datetime(df["Duration"], format='%H:%M')
-        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").time())
+        df["Duration"] = df['Duration'].apply(lambda x: datetime.datetime.strptime(x.strip(), "%H:%M").strftime("%H:%M") + " h")
         df["Airline"] = "Silver Cloud Air (SCR)"
         df["Price"] = "see below"
 
