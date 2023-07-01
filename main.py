@@ -11,7 +11,12 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logging.info("Main.py started")
 
 user_empno = random.randint(35000, 50000)
 
@@ -113,6 +118,7 @@ if __name__ == "__main__":
 
     # data retrieval
     df_AHO, df_PVD, df_ECA, df_05, df_silver, errors = get_data()
+    logging.info("Data retrieval finished")
 
     #Create merge df    
     df=create_merge_df()
@@ -136,43 +142,46 @@ if __name__ == "__main__":
         'Departure Airport',
         'Arrival Airport',
         'Airline',
-        'Aircraft Type',
+        'Aircraft',
         'Departure Time',
         'Arrival Time',
         'Duration',
-        'Distance',
         'Available Seats',
         'Price',
         'Comment'
     ]
     df = df.reindex(columns=final_columns)
     df.to_csv("main.csv")
-    #print(df)
-    #df = pd.read_csv("main.csv")
+    df = pd.read_csv("main.csv").iloc[:,1:]
+    print("main df:\n", df.head())
+    logging.info("Main df formatting finished")
 
     
     # Mailing
+    logging.info("Mailing started")
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
     email_receiver = maillist
     subject = 'Privatejet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
     
     from pretty_html_table import build_table
-    html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif', font_size='small',)
-        #width_dict=['auto','auto', 'auto', 'auto','auto', 'auto'])
+    html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif', font_size='15px',
+        width_dict=['60','55','55','130','130','110','80','55','55','55','55','70','100',],
+        padding= '0px 0px 0px 2px'
+        )
     html = """\
         <html>
         <head></head>
         <body>
-            <h1>Currently published Private Jet Positioning flights:</h1>
-            <div style="margin-bottom: 10px;">No guarantee for data correctness. 
-            Full information on the respective privatejet airline web page, 
+            <h1>Currently Published Private Jet Positioning Flights:</h1>
+            <div style="margin-bottom: 10px;">No guarantee is given for the accuracy of the data.
+            Full information on the respective private jet airline web page, 
             which are accessible via MyIDTravel. 
             If you see any errors or wrong figures, please message paul.friedrich@gmx.net.</div>
 
             {0}
 
-            <h1>Excellentair Fares (incl. TAX and Fees)</h1>
+            <h1>ExcellentAir Fares (incl. TAX and Fees)</h1>
             <h4>See MyIDTravel for latest price information.</h4>
             <ul>
                 <li><strong>Germany:</strong> € 39,00</li>
@@ -184,12 +193,20 @@ if __name__ == "__main__":
             <ul>
                 <li><strong>Flights within Germany:</strong> € 100</li>
                 <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250</li>
-                <li><strong>Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.</strong></li>
             </ul>
+            Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.
 
         </body>
         </html>
         """.format(html_table_blue_light)
+    
+    # HTML format testing
+    html_testing = False
+    if html_testing:
+        f = open('testhtml.html', 'w')
+        f.write(html)
+        f.close()
+        raise
     
     part1 = MIMEText(html, 'html')
 
@@ -214,3 +231,6 @@ if __name__ == "__main__":
                 logging.info(f"Mailing {mailaddress} did not work.")
             finally:
                 pass
+
+    logging.info("Mailing finished")
+    logging.info("Program finished")
