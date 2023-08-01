@@ -102,29 +102,29 @@ def get_data():
     finally:
         pass    
     
-    try:
-        with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
-            SilverCloud.login()
-            df_silver = SilverCloud.html_to_df()
-    except:
-        errors.append("Silver Cloud Air failed")
-    finally:
-        pass    
+    #try:
+    #    with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
+    #        SilverCloud.login()
+    #        df_silver = SilverCloud.html_to_df()
+    #except:
+    #3    errors.append("Silver Cloud Air failed")
+    #finally:
+    #    pass    
 
-    return df_AHO, df_PVD, df_ECA, df_05, df_silver, errors
+    return df_AHO, df_PVD, df_ECA, df_05, errors #, df_silver
 
 
 if __name__ == "__main__":
 
     # data retrieval
-    df_AHO, df_PVD, df_ECA, df_05, df_silver, errors = get_data()
+    df_AHO, df_PVD, df_ECA, df_05, errors = get_data() #, df_silver
     logging.info("Data retrieval finished")
 
     #Create merge df    
     df=create_merge_df()
 
     # Big Merge
-    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_silver])
+    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05]) #, df_silver
 
     # Formatting 
     df['Departure IATA'] = df['Departure IATA'].fillna(df['Departure ICAO'])

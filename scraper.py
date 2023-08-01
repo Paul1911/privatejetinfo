@@ -18,7 +18,8 @@ class AirlineScraper:
         self.user_empno = user_empno
 
     def __enter__(self):
-        self.driver = webdriver.Edge()
+        #self.driver = webdriver.Edge()
+        self.driver = webdriver.Chrome()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
