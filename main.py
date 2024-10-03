@@ -125,7 +125,7 @@ if __name__ == "__main__":
     # data retrieval
     df_AHO, df_PVD, df_ECA, df_05, errors = get_data() #, df_silver
     logging.info("Data retrieval finished")
-    logging.info(errors)
+    logging.info("------------------------------- Following data retrievals ran into an error: -------------------------------\n", errors)
 
     #Create merge df    
     df=create_merge_df()
