@@ -10,6 +10,7 @@ import ssl
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
+from pretty_html_table import build_table
 
 logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
@@ -65,6 +66,11 @@ def create_merge_df():
 
 def get_data():
     errors = []
+    df_AHO = pd.DataFrame()
+    df_PVD = pd.DataFrame()
+    df_ECA = pd.DataFrame()
+    df_05 = pd.DataFrame()
+
     try:
         with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
             AirHamburg.login()
@@ -119,6 +125,7 @@ if __name__ == "__main__":
     # data retrieval
     df_AHO, df_PVD, df_ECA, df_05, errors = get_data() #, df_silver
     logging.info("Data retrieval finished")
+    logging.info(errors)
 
     #Create merge df    
     df=create_merge_df()
@@ -164,7 +171,7 @@ if __name__ == "__main__":
     email_receiver = maillist
     subject = 'Privatejet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
     
-    from pretty_html_table import build_table
+    
     html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif', font_size='15px',
         width_dict=['60','55','55','130','130','110','80','55','55','55','55','70','100',],
         padding= '0px 0px 0px 2px'
@@ -177,7 +184,7 @@ if __name__ == "__main__":
             <div style="margin-bottom: 10px;">No guarantee is given for the accuracy of the data.
             Full information on the respective private jet airline web page, 
             which are accessible via MyIDTravel. 
-            If you see any errors or wrong figures, please message paul.friedrich@gmx.net.</div>
+            </div>
 
             {0}
 
@@ -207,27 +214,23 @@ if __name__ == "__main__":
         f.write(html)
         f.close()
         raise
-    
-    part1 = MIMEText(html, 'html')
-
-    em = MIMEMultipart()
-    em['From'] = email_sender
-    #em['CC'] = email_receiver
-    #em['BCC'] = ""
-    #rec = em['To'] + em['CC'] + em['BCC']
-    em['Subject'] = subject
-    em.attach(part1)
 
     context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
         for mailaddress in email_receiver:
-            em['To'] = mailaddress
             try:
+                part1 = MIMEText(html, 'html')
+                em = MIMEMultipart()
+                em['From'] = email_sender
+                em['Subject'] = subject
+                em.attach(part1)
+                em['To'] = mailaddress
                 smtp.sendmail(email_sender, mailaddress, em.as_string())
                 logging.info(f"Mail sent to {mailaddress}.")
-            except:
+            except Exception as e:
+                print(e)
                 logging.info(f"Mailing {mailaddress} did not work.")
             finally:
                 pass
