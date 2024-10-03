@@ -68,6 +68,7 @@ class AirHamburgScraper(AirlineScraper):
         next_button = self.driver.find_element(By.CLASS_NAME, "uk-button-primary")
         self.driver.execute_script("window.scrollBy(0, 1000);")
         next_button.click()
+        time.sleep(1)
 
         # Parse the HTML code with BeautifulSoup
         html = self.driver.page_source
