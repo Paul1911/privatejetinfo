@@ -19,7 +19,9 @@ class AirlineScraper:
 
     def __enter__(self):
         #self.driver = webdriver.Edge()
-        self.driver = webdriver.Chrome()
+        options = webdriver.ChromeOptions()
+        #options.add_argument("--headless=new")
+        self.driver = webdriver.Chrome(options=options)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
