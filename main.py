@@ -253,6 +253,10 @@ if __name__ == "__main__":
                 Full information on the respective private jet airline web page, 
                 which are accessible via MyIDTravel. 
 
+                <p> If this newsletter helped you find a privat jet to try, maybe consider donating 3 EUR to <a href="https://www.dkms.de/aktiv-werden/geld-spenden" target="_blank">Deutsche Knochenmarkspende</a> 
+                or 3 CHF to <a href="https://www.blutstammzellspende.ch/de/Geld-spenden/geld-spenden" target="_blank">Blutstammzellspende</a>. Also, tell me about it, makes the developer happy ;)!
+
+
                 <h2>Published Private Jet Flights on your preferred Routes:</h2>
                 </div>
 
