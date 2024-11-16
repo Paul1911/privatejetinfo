@@ -8,7 +8,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-import airportsdata
 
 class AirlineScraper:
     def __init__(self, user, user_pw, user_airline, user_empno):
