@@ -8,6 +8,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
+from io import StringIO
 
 class AirlineScraper:
     def __init__(self, user, user_pw, user_airline, user_empno):
@@ -17,10 +20,9 @@ class AirlineScraper:
         self.user_empno = user_empno
 
     def __enter__(self):
-        #self.driver = webdriver.Edge()
-        options = webdriver.ChromeOptions()
-        #options.add_argument("--headless=new")
-        self.driver = webdriver.Chrome(options=options)
+        options = Options()
+        self.driver = webdriver.Edge(service=Service('msedgedriver.exe'), options=options)
+        time.sleep(1)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -132,7 +134,7 @@ class AirHamburgScraper(AirlineScraper):
             data['Arrival Time'].append(arrival_time if arrival_time else '')
 
             # Extract Price
-            base_price = flight_item.find_all('span')[11].text.strip().split(":")[1].strip()
+            base_price = flight_item.select_one("div.aircraft-info span b").text.strip()
             data['Price'].append(base_price if base_price else '')
 
         # Create a DataFrame from the extracted data
@@ -176,13 +178,14 @@ class PadaviationScraper(AirlineScraper):
     def html_to_df(self):
 
         html = self.driver.page_source 
+        html_io = StringIO(html)
 
         # get Dates 
         soup = BeautifulSoup(html, 'html.parser')
         dates = [header.get_text() for header in soup.find_all('h1')]
 
         # Add Dates to Tables 
-        tables = pd.read_html(html)
+        tables = pd.read_html(html_io)
         for index, table in enumerate(tables):
             table["Departure Date"] = dates[index]
 
