@@ -1,4 +1,4 @@
-from config import config,maillist
+from config import config, maillist, admin
 import scraper 
 import logging
 import pandas as pd
@@ -123,9 +123,9 @@ def get_data():
 if __name__ == "__main__":
 
     # data retrieval
-    df_AHO, df_PVD, df_ECA, df_05, errors = get_data() #, df_silver
+    df_AHO, df_PVD, df_ECA, df_05, error_messages = get_data() #, df_silver
     logging.info("Data retrieval finished")
-    logging.info("------------------------------- Following data retrievals ran into an error: -------------------------------\n", errors)
+    logging.info(f"------------------------------- Following data retrievals ran into an error: -------------------------------\n{error_messages}")
 
     #Create merge df    
     df=create_merge_df()
@@ -170,63 +170,59 @@ if __name__ == "__main__":
     email_password = config['user_password_mail']
     email_receiver = maillist
     subject = 'Privatejet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
+
+    context = ssl.create_default_context()
     
     
-    html_table_blue_light = build_table(df, 'yellow_light', font_family='Open Sans, sans-serif', font_size='15px',
-        width_dict=['60','55','55','130','130','110','80','55','55','55','55','70','100',],
-        padding= '0px 0px 0px 2px'
+    html_table = df.to_html(
+        index=False, 
+        classes='table table-striped', 
+        border=0, na_rep="",  # Replace NaN with an empty string
         )
-    html = """\
+    html_content = f"""
         <html>
-        <head></head>
+        <head>
+            <style>
+                .table {{ border-collapse: collapse; width: 100%; }}
+                .table td, .table th {{ border: 1px solid #ddd; padding: 8px; }}
+                .table th {{ padding-top: 12px; padding-bottom: 12px; text-align: left; background-color: #f4f4f4; }}
+            </style>
+        </head>
         <body>
             <h1>Currently Published Private Jet Positioning Flights:</h1>
             <div style="margin-bottom: 10px;">No guarantee is given for the accuracy of the data.
             Full information on the respective private jet airline web page, 
             which are accessible via MyIDTravel. 
+
             </div>
+            {html_table}
 
-            {0}
-
-            <h1>ExcellentAir Fares (incl. TAX and Fees)</h1>
+            <h3>ExcellentAir Fares (incl. TAX and Fees)</h3>
             <h4>See MyIDTravel for latest price information.</h4>
             <ul>
                 <li><strong>Germany:</strong> € 39,00</li>
                 <li><strong>Europa:</strong> € 49,00</li>
                 <li><strong>North Africa / Canaries:</strong> € 59,00</li>
             </ul>
-            <h1>Silver Cloud Air Fares</h1>
+            <h3>Silver Cloud Air Fares</h3>
             <h4>See MyIDTravel for latest price information.</h4>
             <ul>
                 <li><strong>Flights within Germany:</strong> € 100</li>
                 <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250</li>
             </ul>
             Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.
-
         </body>
         </html>
-        """.format(html_table_blue_light)
-    
-    # HTML format testing
-    html_testing = False
-    if html_testing:
-        f = open('testhtml.html', 'w')
-        f.write(html)
-        f.close()
-        raise
-
-    context = ssl.create_default_context()
-
+        """
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
         for mailaddress in email_receiver:
             try:
-                part1 = MIMEText(html, 'html')
                 em = MIMEMultipart()
                 em['From'] = email_sender
                 em['Subject'] = subject
-                em.attach(part1)
                 em['To'] = mailaddress
+                em.attach(MIMEText(html_content, 'html'))
                 smtp.sendmail(email_sender, mailaddress, em.as_string())
                 logging.info(f"Mail sent to {mailaddress}.")
             except Exception as e:
@@ -234,6 +230,28 @@ if __name__ == "__main__":
                 logging.info(f"Mailing {mailaddress} did not work.")
             finally:
                 pass
+
+
+    # Error message
+    if error_messages:
+        html = f"""{error_messages}"""
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+            smtp.login(email_sender, email_password)
+            for mailaddress in admin:
+                try:
+                    part1 = MIMEText(html, 'html')
+                    em = MIMEMultipart()
+                    em['From'] = email_sender
+                    em['Subject'] = "PrivateJet Exceptions"
+                    em.attach(part1)
+                    em['To'] = mailaddress
+                    smtp.sendmail(email_sender, mailaddress, em.as_string())
+                    logging.info(f"Mail sent to {mailaddress}.")
+                except Exception as e:
+                    print(e)
+                    logging.info(f"Mailing {mailaddress} did not work.")
+                finally:
+                    pass
 
     logging.info("Mailing finished")
     logging.info("Program finished")
