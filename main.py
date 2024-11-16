@@ -1,4 +1,4 @@
-from config import config, maillist, admin
+from config import config, admin
 import scraper 
 import logging
 import pandas as pd
@@ -11,6 +11,10 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from pretty_html_table import build_table
+import yaml
+
+with open("maillist.yaml", "r") as file:
+        maillist = yaml.safe_load(file)
 
 logging.basicConfig(
     format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
@@ -18,6 +22,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logging.info("Main.py started")
+
 
 user_empno = random.randint(35000, 50000)
 
@@ -142,20 +147,23 @@ if __name__ == "__main__":
     df = df.drop(["Distance","Departure ICAO","Arrival ICAO"], axis=1)
     df = df.fillna("")
     df = df.drop_duplicates()
+    df["Route"] = df['Departure IATA/ICAO'] + "-" + df['Arrival IATA/ICAO']
+    df["Airline|AC"] = df['Airline'] + " | " + df['Aircraft']
     final_columns = [
         'Departure Date',
         'Departure IATA/ICAO',
         'Arrival IATA/ICAO',
+        'Route',
         'Departure Airport',
         'Arrival Airport',
-        'Airline',
-        'Aircraft',
+        #'Airline',
+        #'Aircraft',
+        "Airline|AC",
         'Departure Time',
         'Arrival Time',
         'Duration',
         'Available Seats',
         'Price',
-        'Comment'
     ]
     df = df.reindex(columns=final_columns)
     df.to_csv("main.csv")
@@ -169,54 +177,96 @@ if __name__ == "__main__":
     email_sender = config['user_mail']
     email_password = config['user_password_mail']
     email_receiver = maillist
-    subject = 'Privatejet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
+    subject = 'Private Jet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
 
     context = ssl.create_default_context()
     
-    
-    html_table = df.to_html(
-        index=False, 
-        classes='table table-striped', 
-        border=0, na_rep="",  # Replace NaN with an empty string
-        )
-    html_content = f"""
-        <html>
-        <head>
-            <style>
-                .table {{ border-collapse: collapse; width: 100%; }}
-                .table td, .table th {{ border: 1px solid #ddd; padding: 8px; }}
-                .table th {{ padding-top: 12px; padding-bottom: 12px; text-align: left; background-color: #f4f4f4; }}
-            </style>
-        </head>
-        <body>
-            <h1>Currently Published Private Jet Positioning Flights:</h1>
-            <div style="margin-bottom: 10px;">No guarantee is given for the accuracy of the data.
-            Full information on the respective private jet airline web page, 
-            which are accessible via MyIDTravel. 
+    for mailaddress, cfg in email_receiver.items():
+        all_flights = cfg['all_flights']
 
-            </div>
-            {html_table}
+        special_flights = cfg['special_flights']
+        spec_flts_dep_ap = special_flights['dep_airports'] if special_flights['dep_airports'] is not None else []
+        spec_flts_arr_ap = special_flights['arr_airports'] if special_flights['arr_airports'] is not None else []
+        spec_flts_routes = special_flights['routes'] if special_flights['routes'] is not None else []
 
-            <h3>ExcellentAir Fares (incl. TAX and Fees)</h3>
-            <h4>See MyIDTravel for latest price information.</h4>
-            <ul>
-                <li><strong>Germany:</strong> € 39,00</li>
-                <li><strong>Europa:</strong> € 49,00</li>
-                <li><strong>North Africa / Canaries:</strong> € 59,00</li>
-            </ul>
-            <h3>Silver Cloud Air Fares</h3>
-            <h4>See MyIDTravel for latest price information.</h4>
-            <ul>
-                <li><strong>Flights within Germany:</strong> € 100</li>
-                <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250</li>
-            </ul>
-            Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.
-        </body>
-        </html>
-        """
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-        smtp.login(email_sender, email_password)
-        for mailaddress in email_receiver:
+        alarm_flights = cfg['alarm_flights']
+        alarm_flts_dep_ap = alarm_flights['dep_airports'] if alarm_flights['dep_airports'] is not None else []
+        alarm_flts_arr_ap = alarm_flights['arr_airports'] if alarm_flights['arr_airports'] is not None else []
+        alarm_flts_routes = alarm_flights['routes'] if alarm_flights['routes'] is not None else []
+        
+        html_table_all_flights = ""
+        html_table_special_flights = "No flights for you this time. Life's hard, right?"
+        html_table_alarm_flights = ""
+
+        table_special_flights = df[
+            df['Route'].isin(spec_flts_routes)|
+            df['Departure IATA/ICAO'].isin(spec_flts_dep_ap)|
+            df['Arrival IATA/ICAO'].isin(spec_flts_arr_ap)
+            ].drop("Route", axis=1)
+        html_table_special_flights = table_special_flights.to_html(
+            index=False, 
+            classes='table table-striped', 
+            border=0, na_rep="",  # Replace NaN with an empty string
+            )
+
+        if all_flights:
+            html_table_all_flights = df.to_html(
+                index=False, 
+                classes='table table-striped', 
+                border=0, na_rep="",  # Replace NaN with an empty string
+            )
+
+
+        html_table = df.to_html(
+            index=False, 
+            classes='table table-striped', 
+            border=0, na_rep="",  # Replace NaN with an empty string
+            )
+        html_content = f"""
+            <html>
+            <head>
+                <style>
+                    .table {{ border-collapse: collapse; width: 100%; }}
+                    .table td, .table th {{ border: 1px solid #ddd; padding: 8px; }}
+                    .table th {{ padding-top: 12px; padding-bottom: 12px; text-align: left; background-color: #f4f4f4; }}
+                </style>
+            </head>
+            <body>
+                <h1>Currently Published Private Jet Positioning Flights:</h1>
+                <div style="margin-bottom: 10px;">No guarantee is given for the accuracy of the data.
+                Full information on the respective private jet airline web page, 
+                which are accessible via MyIDTravel. 
+
+                <h2>Published Private Jet Flights on your preferred Routes:</h2>
+                </div>
+
+                {html_table_special_flights}
+
+                <div style="margin-bottom: 10px;">
+                <h2>All Currently Published Private Jet Flights:</h2>
+                </div>
+
+                {html_table_all_flights}
+
+                <h3>ExcellentAir Fares (incl. TAX and Fees)</h3>
+                <h4>See MyIDTravel for latest price information.</h4>
+                <ul>
+                    <li><strong>Germany:</strong> € 39,00</li>
+                    <li><strong>Europa:</strong> € 49,00</li>
+                    <li><strong>North Africa / Canaries:</strong> € 59,00</li>
+                </ul>
+                <h3>Silver Cloud Air Fares</h3>
+                <h4>See MyIDTravel for latest price information.</h4>
+                <ul>
+                    <li><strong>Flights within Germany:</strong> € 100</li>
+                    <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250</li>
+                </ul>
+                Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.
+            </body>
+            </html>
+            """
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+            smtp.login(email_sender, email_password)
             try:
                 em = MIMEMultipart()
                 em['From'] = email_sender
