@@ -180,8 +180,13 @@ if __name__ == "__main__":
     subject = 'Private Jet Offers on ' + str(datetime.today().strftime('%d-%m-%Y'))
 
     context = ssl.create_default_context()
+
+    # Number formatting for final table
+    formatters ={'Available Seats': lambda x: f'{int(x)}'}
     
     for mailaddress, cfg in email_receiver.items():
+
+        # Get Configs from maillist
         all_flights = cfg['all_flights']
 
         special_flights = cfg['special_flights']
@@ -193,35 +198,46 @@ if __name__ == "__main__":
         alarm_flts_dep_ap = alarm_flights['dep_airports'] if alarm_flights['dep_airports'] is not None else []
         alarm_flts_arr_ap = alarm_flights['arr_airports'] if alarm_flights['arr_airports'] is not None else []
         alarm_flts_routes = alarm_flights['routes'] if alarm_flights['routes'] is not None else []
+
+        # Filter data frame for configs and convert to HTML tables
         
         html_table_all_flights = ""
         html_table_special_flights = "No flights for you this time. Life's hard, right?"
         html_table_alarm_flights = ""
 
+        # Special Flights
         table_special_flights = df[
             df['Route'].isin(spec_flts_routes)|
             df['Departure IATA/ICAO'].isin(spec_flts_dep_ap)|
-            df['Arrival IATA/ICAO'].isin(spec_flts_arr_ap)
+            df['Arrival IATA/ICAO'].isin(spec_flts_arr_ap)|
+            df['Route'].isin(alarm_flts_routes)|
+            df['Departure IATA/ICAO'].isin(alarm_flts_dep_ap)|
+            df['Arrival IATA/ICAO'].isin(alarm_flts_arr_ap)
             ].drop("Route", axis=1)
         html_table_special_flights = table_special_flights.to_html(
             index=False, 
             classes='table table-striped', 
             border=0, na_rep="",  # Replace NaN with an empty string
             )
+        
+        # Alarm flights
+        alarm_conditions = (
+            df['Route'].isin(alarm_flts_routes) |
+            df['Departure IATA/ICAO'].isin(alarm_flts_dep_ap) |
+            df['Arrival IATA/ICAO'].isin(alarm_flts_arr_ap)
+        )
+        alarm = True if df[alarm_conditions].shape[0] > 0 else False
 
+        # All flights
         if all_flights:
-            html_table_all_flights = df.to_html(
+            df_all_flights = df.drop("Route", axis=1)
+            html_table_all_flights = df_all_flights.to_html(
                 index=False, 
                 classes='table table-striped', 
+                formatters = formatters,
                 border=0, na_rep="",  # Replace NaN with an empty string
             )
 
-
-        html_table = df.to_html(
-            index=False, 
-            classes='table table-striped', 
-            border=0, na_rep="",  # Replace NaN with an empty string
-            )
         html_content = f"""
             <html>
             <head>
@@ -269,6 +285,11 @@ if __name__ == "__main__":
             smtp.login(email_sender, email_password)
             try:
                 em = MIMEMultipart()
+                if alarm:
+                    # Set priority to high
+                    em['X-Priority'] = '1' 
+                    em['X-MSMail-Priority'] = 'High'
+                    subject = "PRIVATE JET ALARM - Availability for your Alarm Airports"
                 em['From'] = email_sender
                 em['Subject'] = subject
                 em['To'] = mailaddress
