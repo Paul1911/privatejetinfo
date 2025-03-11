@@ -277,7 +277,7 @@ if __name__ == "__main__":
 
                 {html_table_all_flights}
 
-                <h3>ExcellentAir Fares (incl. TAX and Fees)</h3>
+                <h3>ExcellentAir & ProAir Fares (incl. TAX and Fees)</h3>
                 <h4>See MyIDTravel for latest price information.</h4>
                 <ul>
                     <li><strong>Germany:</strong> € 39,00</li>
