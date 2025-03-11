@@ -74,7 +74,8 @@ def get_data():
     df_AHO = pd.DataFrame()
     df_PVD = pd.DataFrame()
     df_ECA = pd.DataFrame()
-    df_05 = pd.DataFrame()
+    df_05  = pd.DataFrame()
+    df_PAV = pd.DataFrame()
 
     try:
         with scraper.AirHamburgScraper(user_AHO, user_pw_AHO, user_airline_AHO, user_empno) as AirHamburg:
@@ -111,7 +112,20 @@ def get_data():
     except:
         errors.append("Platoon Aviation failed")
     finally:
-        pass    
+        pass
+
+    with scraper.ProairScraper("","","","") as Proair:
+            html = Proair.get_table_html()
+            df_PAV = Proair.html_to_df(html=html)
+
+    try:   
+        with scraper.ProairScraper("","","","") as Proair:
+            html = Proair.get_table_html()
+            df_PAV = Proair.html_to_df(html=html)
+    except:
+        errors.append("Proair failed")
+    finally:
+        pass 
     
     #try:
     #    with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
@@ -122,27 +136,28 @@ def get_data():
     #finally:
     #    pass    
 
-    return df_AHO, df_PVD, df_ECA, df_05, errors #, df_silver
+    return df_AHO, df_PVD, df_ECA, df_05, df_PAV, errors #, df_silver
 
 
 if __name__ == "__main__":
 
     # data retrieval
-    df_AHO, df_PVD, df_ECA, df_05, error_messages = get_data() #, df_silver
+    df_AHO, df_PVD, df_ECA, df_05, df_PAV, error_messages = get_data() #, df_silver
     logging.info("Data retrieval finished")
     logging.info(f"------------------------------- Following data retrievals ran into an error: -------------------------------\n{error_messages}")
 
     #Create merge df    
-    df=create_merge_df()
+    df = create_merge_df()
 
     # Big Merge
-    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05]) #, df_silver
+    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_PAV]) #, df_silver
 
     # Formatting 
     df['Departure IATA'] = df['Departure IATA'].fillna(df['Departure ICAO'])
     df['Arrival IATA'] = df['Arrival IATA'].fillna(df['Arrival ICAO'])
     df = df.rename(columns={'Departure IATA': 'Departure IATA/ICAO', 'Arrival IATA': 'Arrival IATA/ICAO'})
     df = df.sort_values(by=['Departure Date', 'Departure Time'])
+    df['Departure Date'] = df['Departure Date'].strftime("%Y-%m-%d")
     df = df.reset_index(drop=True)
     df = df.drop(["Distance","Departure ICAO","Arrival ICAO"], axis=1)
     df = df.fillna("")
@@ -156,8 +171,6 @@ if __name__ == "__main__":
         'Route',
         'Departure Airport',
         'Arrival Airport',
-        #'Airline',
-        #'Aircraft',
         "Airline|AC",
         'Departure Time',
         'Arrival Time',

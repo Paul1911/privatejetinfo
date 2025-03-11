@@ -3,6 +3,7 @@ import time
 import pandas as pd
 from bs4 import BeautifulSoup
 import datetime
+from config import edgedriver
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
@@ -11,6 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from io import StringIO
+from playwright.sync_api import sync_playwright
 
 class AirlineScraper:
     def __init__(self, user, user_pw, user_airline, user_empno):
@@ -21,12 +23,14 @@ class AirlineScraper:
 
     def __enter__(self):
         options = Options()
-        self.driver = webdriver.Edge(service=Service('msedgedriver.exe'), options=options)
+        options.add_argument("--headless")
+        self.driver = webdriver.Edge(service=Service(edgedriver), options=options)
         time.sleep(1)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.driver.quit()
+
 class AirHamburgScraper(AirlineScraper):
 
     def login(self):
@@ -421,4 +425,65 @@ class SilverCloudAir(AirlineScraper):
 
         print("Silver Cloud Air:\n", df.head())
         logging.info("Silver Cloud Air finished")
+        return df
+
+class ProairScraper(AirlineScraper):
+    def get_table_html(self):
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, slow_mo=50)
+            page = browser.new_page()
+            page.goto("https://www.proair.de/wp-admin/admin-ajax.php?action=update_csv_table")
+
+            # Get the HTML content
+            return page.content()
+
+    def html_to_df(self, html):
+        soup = BeautifulSoup(html, 'html.parser')
+        # Initialize lists
+        data = {
+            'Airline': [],
+            "Departure Date": [],
+            'Departure IATA': [],
+            'Departure Time': [],
+            'Arrival IATA': [],
+            'Arrival Time': [],
+            'Duration': [],
+            'Aircraft': [],
+            'Available Seats': [],
+            'Price': []
+        }
+
+        # Extract rows
+        rows = soup.find_all("tr")
+
+        for i in range(1, len(rows), 2):  # Iterate over every second row (flights)
+            cells = rows[i].find_all("td")
+            
+            data["Departure Date"].append(cells[0].text.strip())
+            data["Departure Time"].append(cells[1].text.strip())
+            data["Departure IATA"].append(cells[2].text.strip().split("-")[0])
+            data["Arrival IATA"].append(cells[2].text.strip().split("-")[1])
+            data["Duration"].append(cells[3].text.strip())
+            data["Arrival Time"].append(cells[4].text.strip())
+
+            # Extract aircraft type & seats if available (from the next row)
+            ac_type, seats = None, None
+            if i + 1 < len(rows):  # Ensure there's a next row
+                extra_cells = rows[i + 1].find_all("td")
+                for cell in extra_cells[1::3]:  # Extract only relevant columns
+                    line_list = cell.get_text(separator="\n").strip().split("\n")
+                    if len(line_list) >= 4:  # Ensure correct indexing
+                        ac_type, seats = line_list[1], line_list[3]
+
+            data["Aircraft"].append(ac_type)
+            data["Available Seats"].append(seats)
+            data["Airline"].append("ProAir")
+            data["Price"].append("see below")
+        
+        # set correct dtypes
+        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%Y-%m-%d')
+
+        # create df
+        df = pd.DataFrame(data)
+        print("ProAir:\n", df.head())
         return df
