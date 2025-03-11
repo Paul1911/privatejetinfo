@@ -480,10 +480,11 @@ class ProairScraper(AirlineScraper):
             data["Airline"].append("ProAir")
             data["Price"].append("see below")
         
-        # set correct dtypes
-        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format='%Y-%m-%d')
-
         # create df
         df = pd.DataFrame(data)
+
+        # set correct dtypes
+        df["Departure Date"] = pd.to_datetime(df["Departure Date"], format="%d.%m.%Y")
+
         print("ProAir:\n", df.head())
         return df
