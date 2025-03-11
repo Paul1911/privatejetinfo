@@ -31,7 +31,6 @@ with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
     smtp.login(email_sender, email_password)
 
     for mailaddress, cfg in email_receiver.items():
-        #try:
         em = MIMEMultipart()
         em['From'] = email_sender
         em['Subject'] = subject
@@ -39,8 +38,3 @@ with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         em.attach(MIMEText(html, 'html'))
         smtp.sendmail(email_sender, mailaddress, em.as_string())
         logging.info(f"Mail sent to {mailaddress}.")
-        #except Exception as e:
-        #    print(e)
-        #    logging.info(f"Mailing {mailaddress} did not work.")
-        #finally:
-        #    pass
