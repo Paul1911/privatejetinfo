@@ -290,7 +290,6 @@ if __name__ == "__main__":
                     <li><strong>Flights within Germany:</strong> € 100 excl. taxes </li>
                     <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250 (incl. everything)</li>
                 </ul>
-                Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.
             </body>
             </html>
             """
