@@ -123,22 +123,22 @@ def get_data():
     finally:
         pass 
     
-    #try:
-    #    with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
-    #        SilverCloud.login()
-    #        df_silver = SilverCloud.html_to_df()
-    #except:
-    #3    errors.append("Silver Cloud Air failed")
-    #finally:
-    #    pass    
+    try:
+        with scraper.SilverCloudAir("",user_pw_SCR,"","") as SilverCloud:
+            SilverCloud.login()
+            df_silver = SilverCloud.html_to_df()
+    except:
+        errors.append("Silver Cloud Air failed")
+    finally:
+        pass    
 
-    return df_AHO, df_PVD, df_ECA, df_05, df_PRA, errors #, df_silver
+    return df_AHO, df_PVD, df_ECA, df_05, df_PRA, df_silver, errors
 
 
 if __name__ == "__main__":
 
     # data retrieval
-    df_AHO, df_PVD, df_ECA, df_05, df_PRA, error_messages = get_data() #, df_silver
+    df_AHO, df_PVD, df_ECA, df_05, df_PRA, df_silver, error_messages = get_data()
     logging.info("Data retrieval finished")
     logging.info(f"------------------------------- Following data retrievals ran into an error: -------------------------------\n{error_messages}")
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     df = create_merge_df()
 
     # Big Merge
-    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_PRA]) #, df_silver
+    df = pd.concat([df, df_AHO, df_PVD, df_ECA, df_05, df_PRA, df_silver]) 
 
     # Formatting 
     df['Departure IATA'] = df['Departure IATA'].fillna(df['Departure ICAO'])
@@ -287,8 +287,8 @@ if __name__ == "__main__":
                 <h3>Silver Cloud Air Fares</h3>
                 <h4>See MyIDTravel for latest price information.</h4>
                 <ul>
-                    <li><strong>Flights within Germany:</strong> € 100</li>
-                    <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250</li>
+                    <li><strong>Flights within Germany:</strong> € 100 excl. taxes </li>
+                    <li><strong>Flights within the EU (incl. Switzerland and UK):</strong> € 250 (incl. everything)</li>
                 </ul>
                 Attention: Prices vary dependent on language selection. Please inquire directly via their website to receive the correct price.
             </body>
